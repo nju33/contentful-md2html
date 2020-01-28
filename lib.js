@@ -1,4 +1,4 @@
-const { createClient } = require('contentful-management');
+const {createClient} = require('contentful-management');
 const unified = require('unified');
 const prism = require('@mapbox/rehype-prism');
 const minify = require('rehype-preset-minify');
@@ -16,7 +16,7 @@ const md2html = contents => {
     unified()
       .use(markdown)
       .use(remark2rehype)
-      .use(prism, { ignoreMissing: true })
+      .use(prism, {ignoreMissing: true})
       .use(minify)
       .use(stringify)
       .process(contents, (err, file) => {
@@ -91,15 +91,22 @@ const process = ({
     const html = await md2html(contents);
 
     if (entry.fields[destFieldName] === void 0) {
-      entry.fields[destFieldName] = { ja: html };
-    } else {
-      entry.fields[destFieldName].ja = html;
+      entry.fields[destFieldName] = {ja: html};
+      await entry.update().then(updated => updated.publish());
+      resolve();
+      return;
     }
 
-    await entry.update().then(updated => updated.publish());
+    if (entry.fields[destFieldName].ja === html) {
+      resolve();
+      return;
+    }
 
+    entry.fields[destFieldName].ja = html;
+    await entry.update().then(updated => updated.publish());
     resolve();
+    return;
   });
 };
 
-module.exports = { process };
+module.exports = {process};

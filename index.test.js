@@ -38,25 +38,35 @@ describe('arguments', () => {
   });
 });
 
-beforeEach(() => {
-  _entry.update.mockClear();
-  _entry.publish.mockClear();
-});
-
-test('call Entry#update and Entry#publish', async () => {
-  await process({
-    contentManagementToken: 'TOKEN',
-    spaceId: 'SPACE',
-    environmentId: 'ENVIRONMENT',
-    entryId: 'ENTRY',
-    srcFieldName: 'content',
-    destFieldName: 'html'
+describe('Entry', () => {
+  beforeEach(() => {
+    _entry.update.mockClear();
+    _entry.publish.mockClear();
+    delete _entry.fields.html;
   });
 
-  expect(_entry.update).toHaveBeenCalledTimes(1);
-  expect(_entry.publish).toHaveBeenCalledTimes(1);
-});
+  test.each([
+    ['call Entry#update and Entry#publish', {ja: ''}],
+    ['not call Entry#update and Entry#publish', {ja: '<h1>title</h1>'}]
+  ])('%s', async (name, htmlJa) => {
+    _entry.fields.html = htmlJa;
 
+    await process({
+      contentManagementToken: 'TOKEN',
+      spaceId: 'SPACE',
+      environmentId: 'ENVIRONMENT',
+      entryId: 'ENTRY',
+      srcFieldName: 'content',
+      destFieldName: 'html'
+    });
+
+    const numberOfCalls = Number(
+      name === 'call Entry#update and Entry#publish'
+    );
+    expect(_entry.update).toHaveBeenCalledTimes(numberOfCalls);
+    expect(_entry.publish).toHaveBeenCalledTimes(numberOfCalls);
+  });
+});
 // // shows how the runner will run a javascript action with env / stdout protocol
 // test('test runs', () => {
 //   nodeProcess.env['INPUT_CONTENT_MANAGEMENT_TOKEN'] = 'TOKEN';
