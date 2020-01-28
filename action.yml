@@ -1,13 +1,21 @@
-name: 'Wait'
-description: 'Wait a designated number of milliseconds'
+name: "ContentfulMD2HTML"
+description: "compile markdown of the content type to html and save result"
 inputs:
-  milliseconds:  # id of input
-    description: 'number of milliseconds to wait'
+  content_management_token:
+    description: ""
     required: true
-    default: '1000'
-outputs:
-  time: # output will be available to future steps 
-    description: 'The message to output'
+  spaceId:
+    description: ""
+    required: true
+  entry_id:
+    description: ""
+    required: true
+  src_field_name:
+    description: "the field name for markdown"
+    required: true
+  dest_field_name:
+    description: "the field name for html"
+    required: true
 runs:
-  using: 'node12'
-  main: 'dist/index.js'
+  using: "node12"
+  main: "dist/index.js"

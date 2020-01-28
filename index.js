@@ -1,22 +1,26 @@
 const core = require('@actions/core');
-const wait = require('./wait');
+const {process} = require('./lib');
 
+const run = async () => {
+  try {
+    const contentManagementToken = core.getInput('content_management_token');
+    const spaceId = core.getInput('space_id');
+    const environmentId = core.getInput('environment_id');
+    const entryId = core.getInput('entry_id');
+    const srcFieldName = core.getInput('src_field_name');
+    const destFieldName = core.getInput('dest_field_name');
 
-// most @actions toolkit packages have async methods
-async function run() {
-  try { 
-    const ms = core.getInput('milliseconds');
-    console.log(`Waiting ${ms} milliseconds ...`)
-
-    core.debug((new Date()).toTimeString())
-    wait(parseInt(ms));
-    core.debug((new Date()).toTimeString())
-
-    core.setOutput('time', new Date().toTimeString());
-  } 
-  catch (error) {
+    await process({
+      contentManagementToken,
+      spaceId,
+      environmentId,
+      entryId,
+      srcFieldName,
+      destFieldName
+    });
+  } catch (error) {
     core.setFailed(error.message);
   }
-}
+};
 
-run()
+run();
