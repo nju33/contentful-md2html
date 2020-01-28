@@ -1,21 +1,24 @@
-name: "ContentfulMD2HTML"
-description: "compile markdown of the content type to html and save result"
+name: 'ContentfulMD2HTML'
+description: 'compile markdown of the content type to html and save result'
 inputs:
   content_management_token:
-    description: ""
+    description: ''
     required: true
-  spaceId:
-    description: ""
+  space_id:
+    description: ''
+    required: true
+  environment_id:
+    description: ''
     required: true
   entry_id:
-    description: ""
+    description: ''
     required: true
   src_field_name:
-    description: "the field name for markdown"
+    description: 'the field name for markdown'
     required: true
   dest_field_name:
-    description: "the field name for html"
+    description: 'the field name for html'
     required: true
 runs:
-  using: "node12"
-  main: "dist/index.js"
+  using: 'node12'
+  main: 'dist/index.js'
