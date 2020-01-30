@@ -5,6 +5,7 @@ const minify = require('rehype-preset-minify');
 const stringify = require('rehype-stringify');
 const markdown = require('remark-parse');
 const remark2rehype = require('remark-rehype');
+const raw = require('remark-raw');
 
 /**
  * compile markdown to html
@@ -15,7 +16,8 @@ const md2html = contents => {
   return new Promise((resolve, reject) => {
     unified()
       .use(markdown)
-      .use(remark2rehype)
+      .use(remark2rehype, {allowDangerousHTML: true})
+      .use(raw)
       .use(prism, {ignoreMissing: true})
       .use(minify)
       .use(stringify)
