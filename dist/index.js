@@ -344,86 +344,31 @@ function construct() {
 /***/ }),
 /* 3 */,
 /* 4 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
+/***/ (function(module) {
 
 "use strict";
 
 
-module.exports = visitParents
+module.exports = factory
 
-var convert = __webpack_require__(99)
+// Construct a state `toggler`: a function which inverses `property` in context
+// based on its current value.
+// The by `toggler` returned function restores that value.
+function factory(key, state, ctx) {
+  return enter
 
-var CONTINUE = true
-var SKIP = 'skip'
-var EXIT = false
+  function enter() {
+    var context = ctx || this
+    var current = context[key]
 
-visitParents.CONTINUE = CONTINUE
-visitParents.SKIP = SKIP
-visitParents.EXIT = EXIT
+    context[key] = !state
 
-function visitParents(tree, test, visitor, reverse) {
-  var is
+    return exit
 
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  is = convert(test)
-
-  one(tree, null, [])
-
-  // Visit a single node.
-  function one(node, index, parents) {
-    var result = []
-    var subresult
-
-    if (!test || is(node, index, parents[parents.length - 1] || null)) {
-      result = toResult(visitor(node, parents))
-
-      if (result[0] === EXIT) {
-        return result
-      }
-    }
-
-    if (node.children && result[0] !== SKIP) {
-      subresult = toResult(all(node.children, parents.concat(node)))
-      return subresult[0] === EXIT ? subresult : result
-    }
-
-    return result
-  }
-
-  // Visit children in `parent`.
-  function all(children, parents) {
-    var min = -1
-    var step = reverse ? -1 : 1
-    var index = (reverse ? children.length : min) + step
-    var result
-
-    while (index > min && index < children.length) {
-      result = one(children[index], index, parents)
-
-      if (result[0] === EXIT) {
-        return result
-      }
-
-      index = typeof result[1] === 'number' ? result[1] : index + step
+    function exit() {
+      context[key] = current
     }
   }
-}
-
-function toResult(value) {
-  if (value !== null && typeof value === 'object' && 'length' in value) {
-    return value
-  }
-
-  if (typeof value === 'number') {
-    return [CONTINUE, value]
-  }
-
-  return [value]
 }
 
 
@@ -736,7 +681,42 @@ module.exports = isRemoteResource;
 /* 21 */,
 /* 22 */,
 /* 23 */,
-/* 24 */,
+/* 24 */
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+
+module.exports = visit
+
+var visitParents = __webpack_require__(523)
+
+var CONTINUE = visitParents.CONTINUE
+var SKIP = visitParents.SKIP
+var EXIT = visitParents.EXIT
+
+visit.CONTINUE = CONTINUE
+visit.SKIP = SKIP
+visit.EXIT = EXIT
+
+function visit(tree, test, visitor, reverse) {
+  if (typeof test === 'function' && typeof visitor !== 'function') {
+    reverse = visitor
+    visitor = test
+    test = null
+  }
+
+  visitParents(tree, test, overload, reverse)
+
+  function overload(node, parents) {
+    var parent = parents[parents.length - 1]
+    var index = parent ? parent.children.indexOf(node) : null
+    return visitor(node, index, parent)
+  }
+}
+
+
+/***/ }),
 /* 25 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -1029,81 +1009,30 @@ module.exports = {
 "use strict";
 
 
-module.exports = visitParents
+var assign = __webpack_require__(954)
 
-var convert = __webpack_require__(332)
+module.exports = u
 
-var CONTINUE = true
-var SKIP = 'skip'
-var EXIT = false
+function u(type, props, value) {
+  var node
 
-visitParents.CONTINUE = CONTINUE
-visitParents.SKIP = SKIP
-visitParents.EXIT = EXIT
-
-function visitParents(tree, test, visitor, reverse) {
-  var is
-
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
+  if (
+    (value === null || value === undefined) &&
+    (typeof props !== 'object' || Array.isArray(props))
+  ) {
+    value = props
+    props = {}
   }
 
-  is = convert(test)
+  node = assign({type: String(type)}, props)
 
-  one(tree, null, [])
-
-  // Visit a single node.
-  function one(node, index, parents) {
-    var result = []
-    var subresult
-
-    if (!test || is(node, index, parents[parents.length - 1] || null)) {
-      result = toResult(visitor(node, parents))
-
-      if (result[0] === EXIT) {
-        return result
-      }
-    }
-
-    if (node.children && result[0] !== SKIP) {
-      subresult = toResult(all(node.children, parents.concat(node)))
-      return subresult[0] === EXIT ? subresult : result
-    }
-
-    return result
+  if (Array.isArray(value)) {
+    node.children = value
+  } else if (value !== null && value !== undefined) {
+    node.value = String(value)
   }
 
-  // Visit children in `parent`.
-  function all(children, parents) {
-    var min = -1
-    var step = reverse ? -1 : 1
-    var index = (reverse ? children.length : min) + step
-    var result
-
-    while (index > min && index < children.length) {
-      result = one(children[index], index, parents)
-
-      if (result[0] === EXIT) {
-        return result
-      }
-
-      index = typeof result[1] === 'number' ? result[1] : index + step
-    }
-  }
-}
-
-function toResult(value) {
-  if (value !== null && typeof value === 'object' && 'length' in value) {
-    return value
-  }
-
-  if (typeof value === 'number') {
-    return [CONTINUE, value]
-  }
-
-  return [value]
+  return node
 }
 
 
@@ -1259,100 +1188,7 @@ function n1ql(Prism) {
 
 
 /***/ }),
-/* 32 */
-/***/ (function(module) {
-
-"use strict";
-
-
-module.exports = convert
-
-function convert(test) {
-  if (typeof test === 'string') {
-    return typeFactory(test)
-  }
-
-  if (test === null || test === undefined) {
-    return ok
-  }
-
-  if (typeof test === 'object') {
-    return ('length' in test ? anyFactory : matchesFactory)(test)
-  }
-
-  if (typeof test === 'function') {
-    return test
-  }
-
-  throw new Error('Expected function, string, or object as test')
-}
-
-function convertAll(tests) {
-  var results = []
-  var length = tests.length
-  var index = -1
-
-  while (++index < length) {
-    results[index] = convert(tests[index])
-  }
-
-  return results
-}
-
-// Utility assert each property in `test` is represented in `node`, and each
-// values are strictly equal.
-function matchesFactory(test) {
-  return matches
-
-  function matches(node) {
-    var key
-
-    for (key in test) {
-      if (node[key] !== test[key]) {
-        return false
-      }
-    }
-
-    return true
-  }
-}
-
-function anyFactory(tests) {
-  var checks = convertAll(tests)
-  var length = checks.length
-
-  return matches
-
-  function matches() {
-    var index = -1
-
-    while (++index < length) {
-      if (checks[index].apply(this, arguments)) {
-        return true
-      }
-    }
-
-    return false
-  }
-}
-
-// Utility to convert a string into a function which checks a given node’s type
-// for said string.
-function typeFactory(test) {
-  return type
-
-  function type(node) {
-    return Boolean(node && node.type === test)
-  }
-}
-
-// Utility to return true.
-function ok() {
-  return true
-}
-
-
-/***/ }),
+/* 32 */,
 /* 33 */
 /***/ (function(module) {
 
@@ -2093,7 +1929,7 @@ function t4Cs(Prism) {
 
 
 var Uglify = __webpack_require__(252)
-var visit = __webpack_require__(589)
+var visit = __webpack_require__(83)
 var fromString = __webpack_require__(677)
 var toString = __webpack_require__(763)
 var js = __webpack_require__(805)
@@ -3011,42 +2847,7 @@ function iterate(values, callback, context) {
 
 /***/ }),
 /* 57 */,
-/* 58 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visit
-
-var visitParents = __webpack_require__(184)
-
-var CONTINUE = visitParents.CONTINUE
-var SKIP = visitParents.SKIP
-var EXIT = visitParents.EXIT
-
-visit.CONTINUE = CONTINUE
-visit.SKIP = SKIP
-visit.EXIT = EXIT
-
-function visit(tree, test, visitor, reverse) {
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  visitParents(tree, test, overload, reverse)
-
-  function overload(node, parents) {
-    var parent = parents[parents.length - 1]
-    var index = parent ? parent.children.indexOf(node) : null
-    return visitor(node, index, parent)
-  }
-}
-
-
-/***/ }),
+/* 58 */,
 /* 59 */
 /***/ (function(module) {
 
@@ -3130,51 +2931,7 @@ function hardBreak(eat, value, silent) {
 
 
 /***/ }),
-/* 64 */,
-/* 65 */,
-/* 66 */,
-/* 67 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = footnote
-
-var footnoteReference = __webpack_require__(119)
-
-function footnote(h, node) {
-  var footnoteById = h.footnoteById
-  var footnoteOrder = h.footnoteOrder
-  var identifier = 1
-
-  while (identifier in footnoteById) {
-    identifier++
-  }
-
-  identifier = String(identifier)
-
-  // No need to check if `identifier` exists in `footnoteOrder`, it’s guaranteed
-  // to not exist because we just generated it.
-  footnoteOrder.push(identifier)
-
-  footnoteById[identifier] = {
-    type: 'footnoteDefinition',
-    identifier: identifier,
-    children: [{type: 'paragraph', children: node.children}],
-    position: node.position
-  }
-
-  return footnoteReference(h, {
-    type: 'footnoteReference',
-    identifier: identifier,
-    position: node.position
-  })
-}
-
-
-/***/ }),
-/* 68 */
+/* 64 */
 /***/ (function(module) {
 
 "use strict";
@@ -3268,6 +3025,50 @@ function ok() {
 
 
 /***/ }),
+/* 65 */,
+/* 66 */,
+/* 67 */
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+
+module.exports = footnote
+
+var footnoteReference = __webpack_require__(119)
+
+function footnote(h, node) {
+  var footnoteById = h.footnoteById
+  var footnoteOrder = h.footnoteOrder
+  var identifier = 1
+
+  while (identifier in footnoteById) {
+    identifier++
+  }
+
+  identifier = String(identifier)
+
+  // No need to check if `identifier` exists in `footnoteOrder`, it’s guaranteed
+  // to not exist because we just generated it.
+  footnoteOrder.push(identifier)
+
+  footnoteById[identifier] = {
+    type: 'footnoteDefinition',
+    identifier: identifier,
+    children: [{type: 'paragraph', children: node.children}],
+    position: node.position
+  }
+
+  return footnoteReference(h, {
+    type: 'footnoteReference',
+    identifier: identifier,
+    position: node.position
+  })
+}
+
+
+/***/ }),
+/* 68 */,
 /* 69 */
 /***/ (function(module) {
 
@@ -3300,7 +3101,7 @@ function glsl(Prism) {
 "use strict";
 
 
-const visit = __webpack_require__(83);
+const visit = __webpack_require__(165);
 const nodeToString = __webpack_require__(763);
 const refractor = __webpack_require__(786);
 
@@ -3469,7 +3270,7 @@ function properties(Prism) {
 
 
 var whitespace = __webpack_require__(578)
-var locate = __webpack_require__(306)
+var locate = __webpack_require__(316)
 
 module.exports = link
 link.locator = locate
@@ -4393,42 +4194,7 @@ module.exports = require("os");
 
 /***/ }),
 /* 88 */,
-/* 89 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visit
-
-var visitParents = __webpack_require__(721)
-
-var CONTINUE = visitParents.CONTINUE
-var SKIP = visitParents.SKIP
-var EXIT = visitParents.EXIT
-
-visit.CONTINUE = CONTINUE
-visit.SKIP = SKIP
-visit.EXIT = EXIT
-
-function visit(tree, test, visitor, reverse) {
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  visitParents(tree, test, overload, reverse)
-
-  function overload(node, parents) {
-    var parent = parents[parents.length - 1]
-    var index = parent ? parent.children.indexOf(node) : null
-    return visitor(node, index, parent)
-  }
-}
-
-
-/***/ }),
+/* 89 */,
 /* 90 */
 /***/ (function(module) {
 
@@ -4578,29 +4344,7 @@ function phpdoc(Prism) {
 
 
 /***/ }),
-/* 97 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-var xtend = __webpack_require__(940)
-var toHTML = __webpack_require__(709)
-
-module.exports = stringify
-
-function stringify(config) {
-  var settings = xtend(config, this.data('settings'))
-
-  this.Compiler = compiler
-
-  function compiler(tree) {
-    return toHTML(tree, settings)
-  }
-}
-
-
-/***/ }),
+/* 97 */,
 /* 98 */,
 /* 99 */
 /***/ (function(module) {
@@ -4608,90 +4352,21 @@ function stringify(config) {
 "use strict";
 
 
-module.exports = convert
+module.exports = locate
 
-function convert(test) {
-  if (typeof test === 'string') {
-    return typeFactory(test)
+function locate(value, fromIndex) {
+  var asterisk = value.indexOf('*', fromIndex)
+  var underscore = value.indexOf('_', fromIndex)
+
+  if (underscore === -1) {
+    return asterisk
   }
 
-  if (test === null || test === undefined) {
-    return ok
+  if (asterisk === -1) {
+    return underscore
   }
 
-  if (typeof test === 'object') {
-    return ('length' in test ? anyFactory : matchesFactory)(test)
-  }
-
-  if (typeof test === 'function') {
-    return test
-  }
-
-  throw new Error('Expected function, string, or object as test')
-}
-
-function convertAll(tests) {
-  var results = []
-  var length = tests.length
-  var index = -1
-
-  while (++index < length) {
-    results[index] = convert(tests[index])
-  }
-
-  return results
-}
-
-// Utility assert each property in `test` is represented in `node`, and each
-// values are strictly equal.
-function matchesFactory(test) {
-  return matches
-
-  function matches(node) {
-    var key
-
-    for (key in test) {
-      if (node[key] !== test[key]) {
-        return false
-      }
-    }
-
-    return true
-  }
-}
-
-function anyFactory(tests) {
-  var checks = convertAll(tests)
-  var length = checks.length
-
-  return matches
-
-  function matches() {
-    var index = -1
-
-    while (++index < length) {
-      if (checks[index].apply(this, arguments)) {
-        return true
-      }
-    }
-
-    return false
-  }
-}
-
-// Utility to convert a string into a function which checks a given node’s type
-// for said string.
-function typeFactory(test) {
-  return type
-
-  function type(node) {
-    return Boolean(node && node.type === test)
-  }
-}
-
-// Utility to return true.
-function ok() {
-  return true
+  return underscore < asterisk ? underscore : asterisk
 }
 
 
@@ -5727,7 +5402,7 @@ exports.SourceMapGenerator = SourceMapGenerator;
 
 
 
-var visit = __webpack_require__(837)
+var visit = __webpack_require__(83)
 var spaces = __webpack_require__(541).stringify
 var has = __webpack_require__(922)
 var is = __webpack_require__(941)
@@ -6032,7 +5707,7 @@ function makefile(Prism) {
 
 module.exports = text
 
-var u = __webpack_require__(302)
+var u = __webpack_require__(29)
 var trimLines = __webpack_require__(996)
 
 function text(h, node) {
@@ -6469,7 +6144,7 @@ function locate(value, fromIndex) {
 
 module.exports = footnoteReference
 
-var u = __webpack_require__(302)
+var u = __webpack_require__(29)
 
 function footnoteReference(h, node) {
   var footnoteOrder = h.footnoteOrder
@@ -8425,32 +8100,51 @@ module.exports = validator;
 "use strict";
 
 
-module.exports = visit
+var whitespace = __webpack_require__(578)
 
-var visitParents = __webpack_require__(547)
+module.exports = newline
 
-var CONTINUE = visitParents.CONTINUE
-var SKIP = visitParents.SKIP
-var EXIT = visitParents.EXIT
+var lineFeed = '\n'
 
-visit.CONTINUE = CONTINUE
-visit.SKIP = SKIP
-visit.EXIT = EXIT
+function newline(eat, value, silent) {
+  var character = value.charAt(0)
+  var length
+  var subvalue
+  var queue
+  var index
 
-function visit(tree, test, visitor, reverse) {
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
+  if (character !== lineFeed) {
+    return
   }
 
-  visitParents(tree, test, overload, reverse)
-
-  function overload(node, parents) {
-    var parent = parents[parents.length - 1]
-    var index = parent ? parent.children.indexOf(node) : null
-    return visitor(node, index, parent)
+  /* istanbul ignore if - never used (yet) */
+  if (silent) {
+    return true
   }
+
+  index = 1
+  length = value.length
+  subvalue = character
+  queue = ''
+
+  while (index < length) {
+    character = value.charAt(index)
+
+    if (!whitespace(character)) {
+      break
+    }
+
+    queue += character
+
+    if (character === lineFeed) {
+      subvalue += queue
+      queue = ''
+    }
+
+    index++
+  }
+
+  eat(subvalue)
 }
 
 
@@ -8599,7 +8293,7 @@ module.exports = Token;
 "use strict";
 
 
-var one = __webpack_require__(463)
+var one = __webpack_require__(478)
 
 module.exports = all
 
@@ -8643,100 +8337,7 @@ function xmlTransform(_, prop) {
 
 
 /***/ }),
-/* 145 */
-/***/ (function(module) {
-
-"use strict";
-
-
-module.exports = convert
-
-function convert(test) {
-  if (typeof test === 'string') {
-    return typeFactory(test)
-  }
-
-  if (test === null || test === undefined) {
-    return ok
-  }
-
-  if (typeof test === 'object') {
-    return ('length' in test ? anyFactory : matchesFactory)(test)
-  }
-
-  if (typeof test === 'function') {
-    return test
-  }
-
-  throw new Error('Expected function, string, or object as test')
-}
-
-function convertAll(tests) {
-  var results = []
-  var length = tests.length
-  var index = -1
-
-  while (++index < length) {
-    results[index] = convert(tests[index])
-  }
-
-  return results
-}
-
-// Utility assert each property in `test` is represented in `node`, and each
-// values are strictly equal.
-function matchesFactory(test) {
-  return matches
-
-  function matches(node) {
-    var key
-
-    for (key in test) {
-      if (node[key] !== test[key]) {
-        return false
-      }
-    }
-
-    return true
-  }
-}
-
-function anyFactory(tests) {
-  var checks = convertAll(tests)
-  var length = checks.length
-
-  return matches
-
-  function matches() {
-    var index = -1
-
-    while (++index < length) {
-      if (checks[index].apply(this, arguments)) {
-        return true
-      }
-    }
-
-    return false
-  }
-}
-
-// Utility to convert a string into a function which checks a given node’s type
-// for said string.
-function typeFactory(test) {
-  return type
-
-  function type(node) {
-    return Boolean(node && node.type === test)
-  }
-}
-
-// Utility to return true.
-function ok() {
-  return true
-}
-
-
-/***/ }),
+/* 145 */,
 /* 146 */,
 /* 147 */,
 /* 148 */
@@ -9486,7 +9087,7 @@ function django(Prism) {
 
 
 
-var visit = __webpack_require__(58)
+var visit = __webpack_require__(83)
 var js = __webpack_require__(805)
 var has = __webpack_require__(922)
 
@@ -9510,42 +9111,7 @@ function visitor(node) {
 /***/ }),
 /* 160 */,
 /* 161 */,
-/* 162 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visit
-
-var visitParents = __webpack_require__(363)
-
-var CONTINUE = visitParents.CONTINUE
-var SKIP = visitParents.SKIP
-var EXIT = visitParents.EXIT
-
-visit.CONTINUE = CONTINUE
-visit.SKIP = SKIP
-visit.EXIT = EXIT
-
-function visit(tree, test, visitor, reverse) {
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  visitParents(tree, test, overload, reverse)
-
-  function overload(node, parents) {
-    var parent = parents[parents.length - 1]
-    var index = parent ? parent.children.indexOf(node) : null
-    return visitor(node, index, parent)
-  }
-}
-
-
-/***/ }),
+/* 162 */,
 /* 163 */
 /***/ (function(module) {
 
@@ -9578,14 +9144,32 @@ function omission(handlers) {
 "use strict";
 
 
-module.exports = root
+module.exports = visit
 
-var u = __webpack_require__(302)
-var wrap = __webpack_require__(323)
-var all = __webpack_require__(520)
+var visitParents = __webpack_require__(550)
 
-function root(h, node) {
-  return h.augment(node, u('root', wrap(all(h, node))))
+var CONTINUE = visitParents.CONTINUE
+var SKIP = visitParents.SKIP
+var EXIT = visitParents.EXIT
+
+visit.CONTINUE = CONTINUE
+visit.SKIP = SKIP
+visit.EXIT = EXIT
+
+function visit(tree, test, visitor, reverse) {
+  if (typeof test === 'function' && typeof visitor !== 'function') {
+    reverse = visitor
+    visitor = test
+    test = null
+  }
+
+  visitParents(tree, test, overload, reverse)
+
+  function overload(node, parents) {
+    var parent = parents[parents.length - 1]
+    var index = parent ? parent.children.indexOf(node) : null
+    return visitor(node, index, parent)
+  }
 }
 
 
@@ -9600,7 +9184,7 @@ var html = __webpack_require__(686)
 var svg = __webpack_require__(844)
 var voids = __webpack_require__(880)
 var omission = __webpack_require__(551)
-var one = __webpack_require__(463)
+var one = __webpack_require__(478)
 
 module.exports = toHtml
 
@@ -9879,66 +9463,7 @@ function increment() {
 
 
 /***/ }),
-/* 173 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = table
-
-var position = __webpack_require__(960)
-var wrap = __webpack_require__(323)
-var all = __webpack_require__(520)
-
-function table(h, node) {
-  var rows = node.children
-  var index = rows.length
-  var align = node.align
-  var alignLength = align.length
-  var result = []
-  var pos
-  var row
-  var out
-  var name
-  var cell
-
-  while (index--) {
-    row = rows[index].children
-    name = index === 0 ? 'th' : 'td'
-    pos = alignLength
-    out = []
-
-    while (pos--) {
-      cell = row[pos]
-      out[pos] = h(cell, name, {align: align[pos]}, cell ? all(h, cell) : [])
-    }
-
-    result[index] = h(rows[index], 'tr', wrap(out, true))
-  }
-
-  return h(
-    node,
-    'table',
-    wrap(
-      [
-        h(result[0].position, 'thead', wrap([result[0]], true)),
-        h(
-          {
-            start: position.start(result[1]),
-            end: position.end(result[result.length - 1])
-          },
-          'tbody',
-          wrap(result.slice(1), true)
-        )
-      ],
-      true
-    )
-  )
-}
-
-
-/***/ }),
+/* 173 */,
 /* 174 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -10013,91 +9538,7 @@ module.exports = ["script","style","pre","textarea"];
 /* 181 */,
 /* 182 */,
 /* 183 */,
-/* 184 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visitParents
-
-var convert = __webpack_require__(479)
-
-var CONTINUE = true
-var SKIP = 'skip'
-var EXIT = false
-
-visitParents.CONTINUE = CONTINUE
-visitParents.SKIP = SKIP
-visitParents.EXIT = EXIT
-
-function visitParents(tree, test, visitor, reverse) {
-  var is
-
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  is = convert(test)
-
-  one(tree, null, [])
-
-  // Visit a single node.
-  function one(node, index, parents) {
-    var result = []
-    var subresult
-
-    if (!test || is(node, index, parents[parents.length - 1] || null)) {
-      result = toResult(visitor(node, parents))
-
-      if (result[0] === EXIT) {
-        return result
-      }
-    }
-
-    if (node.children && result[0] !== SKIP) {
-      subresult = toResult(all(node.children, parents.concat(node)))
-      return subresult[0] === EXIT ? subresult : result
-    }
-
-    return result
-  }
-
-  // Visit children in `parent`.
-  function all(children, parents) {
-    var min = -1
-    var step = reverse ? -1 : 1
-    var index = (reverse ? children.length : min) + step
-    var result
-
-    while (index > min && index < children.length) {
-      result = one(children[index], index, parents)
-
-      if (result[0] === EXIT) {
-        return result
-      }
-
-      index = typeof result[1] === 'number' ? result[1] : index + step
-    }
-  }
-}
-
-function toResult(value) {
-  if (value !== null && typeof value === 'object' && 'length' in value) {
-    return value
-  }
-
-  if (typeof value === 'number') {
-    return [CONTINUE, value]
-  }
-
-  return [value]
-}
-
-
-/***/ }),
+/* 184 */,
 /* 185 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -10245,7 +9686,7 @@ function blockquote(eat, value, silent) {
 
 
 var array = __webpack_require__(224)
-var visit = __webpack_require__(288)
+var visit = __webpack_require__(83)
 var is = __webpack_require__(941)
 var attributes = __webpack_require__(993)
 
@@ -11014,7 +10455,7 @@ function normalListItem(ctx, value, position) {
 
 
 var whitespace = __webpack_require__(578)
-var locate = __webpack_require__(306)
+var locate = __webpack_require__(316)
 var normalize = __webpack_require__(348)
 
 module.exports = reference
@@ -11814,42 +11255,7 @@ function xlinkTransform(_, prop) {
 
 
 /***/ }),
-/* 221 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visit
-
-var visitParents = __webpack_require__(647)
-
-var CONTINUE = visitParents.CONTINUE
-var SKIP = visitParents.SKIP
-var EXIT = visitParents.EXIT
-
-visit.CONTINUE = CONTINUE
-visit.SKIP = SKIP
-visit.EXIT = EXIT
-
-function visit(tree, test, visitor, reverse) {
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  visitParents(tree, test, overload, reverse)
-
-  function overload(node, parents) {
-    var parent = parents[parents.length - 1]
-    var index = parent ? parent.children.indexOf(node) : null
-    return visitor(node, index, parent)
-  }
-}
-
-
-/***/ }),
+/* 221 */,
 /* 222 */,
 /* 223 */,
 /* 224 */
@@ -11905,7 +11311,7 @@ module.exports = tidyBlock;
 "use strict";
 
 
-var visit = __webpack_require__(83)
+var visit = __webpack_require__(883)
 
 module.exports = removePosition
 
@@ -12561,36 +11967,77 @@ module.exports = {
 
 /***/ }),
 /* 242 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
+/***/ (function(module) {
 
 "use strict";
 
 
-module.exports = visit
+module.exports = thematicBreak
 
-var visitParents = __webpack_require__(538)
+var tab = '\t'
+var lineFeed = '\n'
+var space = ' '
+var asterisk = '*'
+var dash = '-'
+var underscore = '_'
 
-var CONTINUE = visitParents.CONTINUE
-var SKIP = visitParents.SKIP
-var EXIT = visitParents.EXIT
+var maxCount = 3
 
-visit.CONTINUE = CONTINUE
-visit.SKIP = SKIP
-visit.EXIT = EXIT
+function thematicBreak(eat, value, silent) {
+  var index = -1
+  var length = value.length + 1
+  var subvalue = ''
+  var character
+  var marker
+  var markerCount
+  var queue
 
-function visit(tree, test, visitor, reverse) {
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
+  while (++index < length) {
+    character = value.charAt(index)
+
+    if (character !== tab && character !== space) {
+      break
+    }
+
+    subvalue += character
   }
 
-  visitParents(tree, test, overload, reverse)
+  if (
+    character !== asterisk &&
+    character !== dash &&
+    character !== underscore
+  ) {
+    return
+  }
 
-  function overload(node, parents) {
-    var parent = parents[parents.length - 1]
-    var index = parent ? parent.children.indexOf(node) : null
-    return visitor(node, index, parent)
+  marker = character
+  subvalue += character
+  markerCount = 1
+  queue = ''
+
+  while (++index < length) {
+    character = value.charAt(index)
+
+    if (character === marker) {
+      markerCount++
+      subvalue += queue + marker
+      queue = ''
+    } else if (character === space) {
+      queue += character
+    } else if (
+      markerCount >= maxCount &&
+      (!character || character === lineFeed)
+    ) {
+      subvalue += queue
+
+      if (silent) {
+        return true
+      }
+
+      return eat(subvalue)({type: 'thematicBreak'})
+    } else {
+      return
+    }
   }
 }
 
@@ -12654,91 +12101,7 @@ function embedded(node) {
 
 /***/ }),
 /* 245 */,
-/* 246 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visitParents
-
-var convert = __webpack_require__(818)
-
-var CONTINUE = true
-var SKIP = 'skip'
-var EXIT = false
-
-visitParents.CONTINUE = CONTINUE
-visitParents.SKIP = SKIP
-visitParents.EXIT = EXIT
-
-function visitParents(tree, test, visitor, reverse) {
-  var is
-
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  is = convert(test)
-
-  one(tree, null, [])
-
-  // Visit a single node.
-  function one(node, index, parents) {
-    var result = []
-    var subresult
-
-    if (!test || is(node, index, parents[parents.length - 1] || null)) {
-      result = toResult(visitor(node, parents))
-
-      if (result[0] === EXIT) {
-        return result
-      }
-    }
-
-    if (node.children && result[0] !== SKIP) {
-      subresult = toResult(all(node.children, parents.concat(node)))
-      return subresult[0] === EXIT ? subresult : result
-    }
-
-    return result
-  }
-
-  // Visit children in `parent`.
-  function all(children, parents) {
-    var min = -1
-    var step = reverse ? -1 : 1
-    var index = (reverse ? children.length : min) + step
-    var result
-
-    while (index > min && index < children.length) {
-      result = one(children[index], index, parents)
-
-      if (result[0] === EXIT) {
-        return result
-      }
-
-      index = typeof result[1] === 'number' ? result[1] : index + step
-    }
-  }
-}
-
-function toResult(value) {
-  if (value !== null && typeof value === 'object' && 'length' in value) {
-    return value
-  }
-
-  if (typeof value === 'number') {
-    return [CONTINUE, value]
-  }
-
-  return [value]
-}
-
-
-/***/ }),
+/* 246 */,
 /* 247 */,
 /* 248 */,
 /* 249 */,
@@ -12989,91 +12352,7 @@ function java(Prism) {
 /***/ }),
 /* 262 */,
 /* 263 */,
-/* 264 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visitParents
-
-var convert = __webpack_require__(361)
-
-var CONTINUE = true
-var SKIP = 'skip'
-var EXIT = false
-
-visitParents.CONTINUE = CONTINUE
-visitParents.SKIP = SKIP
-visitParents.EXIT = EXIT
-
-function visitParents(tree, test, visitor, reverse) {
-  var is
-
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  is = convert(test)
-
-  one(tree, null, [])
-
-  // Visit a single node.
-  function one(node, index, parents) {
-    var result = []
-    var subresult
-
-    if (!test || is(node, index, parents[parents.length - 1] || null)) {
-      result = toResult(visitor(node, parents))
-
-      if (result[0] === EXIT) {
-        return result
-      }
-    }
-
-    if (node.children && result[0] !== SKIP) {
-      subresult = toResult(all(node.children, parents.concat(node)))
-      return subresult[0] === EXIT ? subresult : result
-    }
-
-    return result
-  }
-
-  // Visit children in `parent`.
-  function all(children, parents) {
-    var min = -1
-    var step = reverse ? -1 : 1
-    var index = (reverse ? children.length : min) + step
-    var result
-
-    while (index > min && index < children.length) {
-      result = one(children[index], index, parents)
-
-      if (result[0] === EXIT) {
-        return result
-      }
-
-      index = typeof result[1] === 'number' ? result[1] : index + step
-    }
-  }
-}
-
-function toResult(value) {
-  if (value !== null && typeof value === 'object' && 'length' in value) {
-    return value
-  }
-
-  if (typeof value === 'number') {
-    return [CONTINUE, value]
-  }
-
-  return [value]
-}
-
-
-/***/ }),
+/* 264 */,
 /* 265 */
 /***/ (function(module) {
 
@@ -14537,7 +13816,7 @@ if (typeof global !== 'undefined') {
 
 
 
-var visit = __webpack_require__(443)
+var visit = __webpack_require__(83)
 var has = __webpack_require__(922)
 var is = __webpack_require__(941)
 var schema = __webpack_require__(760)
@@ -15071,42 +14350,7 @@ function nand2tetrisHdl(Prism) {
 
 
 /***/ }),
-/* 288 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visit
-
-var visitParents = __webpack_require__(582)
-
-var CONTINUE = visitParents.CONTINUE
-var SKIP = visitParents.SKIP
-var EXIT = visitParents.EXIT
-
-visit.CONTINUE = CONTINUE
-visit.SKIP = SKIP
-visit.EXIT = EXIT
-
-function visit(tree, test, visitor, reverse) {
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  visitParents(tree, test, overload, reverse)
-
-  function overload(node, parents) {
-    var parent = parents[parents.length - 1]
-    var index = parent ? parent.children.indexOf(node) : null
-    return visitor(node, index, parent)
-  }
-}
-
-
-/***/ }),
+/* 288 */,
 /* 289 */,
 /* 290 */,
 /* 291 */,
@@ -15312,7 +14556,41 @@ function r(Prism) {
 
 
 /***/ }),
-/* 295 */
+/* 295 */,
+/* 296 */,
+/* 297 */,
+/* 298 */
+/***/ (function(module) {
+
+"use strict";
+
+
+module.exports = xojo
+xojo.displayName = 'xojo'
+xojo.aliases = []
+function xojo(Prism) {
+  Prism.languages.xojo = {
+    comment: {
+      pattern: /(?:'|\/\/|Rem\b).+/i,
+      inside: {
+        keyword: /^Rem/i
+      }
+    },
+    string: {
+      pattern: /"(?:""|[^"])*"/,
+      greedy: true
+    },
+    number: [/(?:\b\d+\.?\d*|\B\.\d+)(?:E[+-]?\d+)?/i, /&[bchou][a-z\d]+/i],
+    symbol: /#(?:If|Else|ElseIf|Endif|Pragma)\b/i,
+    keyword: /\b(?:AddHandler|App|Array|As(?:signs)?|By(?:Ref|Val)|Break|Call|Case|Catch|Const|Continue|CurrentMethodName|Declare|Dim|Do(?:wnTo)?|Each|Else(?:If)?|End|Exit|Extends|False|Finally|For|Global|If|In|Lib|Loop|Me|Next|Nil|Optional|ParamArray|Raise(?:Event)?|ReDim|Rem|RemoveHandler|Return|Select|Self|Soft|Static|Step|Super|Then|To|True|Try|Ubound|Until|Using|Wend|While)\b/i,
+    operator: /<[=>]?|>=?|[+\-*\/\\^=]|\b(?:AddressOf|And|Ctype|IsA?|Mod|New|Not|Or|Xor|WeakAddressOf)\b/i,
+    punctuation: /[.,;:()]/
+  }
+}
+
+
+/***/ }),
+/* 299 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -15320,7 +14598,7 @@ function r(Prism) {
 
 module.exports = visitParents
 
-var convert = __webpack_require__(32)
+var convert = __webpack_require__(487)
 
 var CONTINUE = true
 var SKIP = 'skip'
@@ -15397,40 +14675,6 @@ function toResult(value) {
 
 
 /***/ }),
-/* 296 */,
-/* 297 */,
-/* 298 */
-/***/ (function(module) {
-
-"use strict";
-
-
-module.exports = xojo
-xojo.displayName = 'xojo'
-xojo.aliases = []
-function xojo(Prism) {
-  Prism.languages.xojo = {
-    comment: {
-      pattern: /(?:'|\/\/|Rem\b).+/i,
-      inside: {
-        keyword: /^Rem/i
-      }
-    },
-    string: {
-      pattern: /"(?:""|[^"])*"/,
-      greedy: true
-    },
-    number: [/(?:\b\d+\.?\d*|\B\.\d+)(?:E[+-]?\d+)?/i, /&[bchou][a-z\d]+/i],
-    symbol: /#(?:If|Else|ElseIf|Endif|Pragma)\b/i,
-    keyword: /\b(?:AddHandler|App|Array|As(?:signs)?|By(?:Ref|Val)|Break|Call|Case|Catch|Const|Continue|CurrentMethodName|Declare|Dim|Do(?:wnTo)?|Each|Else(?:If)?|End|Exit|Extends|False|Finally|For|Global|If|In|Lib|Loop|Me|Next|Nil|Optional|ParamArray|Raise(?:Event)?|ReDim|Rem|RemoveHandler|Return|Select|Self|Soft|Static|Step|Super|Then|To|True|Try|Ubound|Until|Using|Wend|While)\b/i,
-    operator: /<[=>]?|>=?|[+\-*\/\\^=]|\b(?:AddressOf|And|Ctype|IsA?|Mod|New|Not|Or|Xor|WeakAddressOf)\b/i,
-    punctuation: /[.,;:()]/
-  }
-}
-
-
-/***/ }),
-/* 299 */,
 /* 300 */,
 /* 301 */
 /***/ (function(module) {
@@ -15471,40 +14715,7 @@ function swift(Prism) {
 
 
 /***/ }),
-/* 302 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-var assign = __webpack_require__(954)
-
-module.exports = u
-
-function u(type, props, value) {
-  var node
-
-  if (
-    (value === null || value === undefined) &&
-    (typeof props !== 'object' || Array.isArray(props))
-  ) {
-    value = props
-    props = {}
-  }
-
-  node = assign({type: String(type)}, props)
-
-  if (Array.isArray(value)) {
-    node.children = value
-  } else if (value !== null && value !== undefined) {
-    node.value = String(value)
-  }
-
-  return node
-}
-
-
-/***/ }),
+/* 302 */,
 /* 303 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -15599,29 +14810,7 @@ function place(parent, child) {
 
 
 /***/ }),
-/* 306 */
-/***/ (function(module) {
-
-"use strict";
-
-
-module.exports = locate
-
-function locate(value, fromIndex) {
-  var link = value.indexOf('[', fromIndex)
-  var image = value.indexOf('![', fromIndex)
-
-  if (image === -1) {
-    return link
-  }
-
-  // Link can never be `-1` if an image is found, so we don’t need to check
-  // for that :)
-  return link < image ? link : image
-}
-
-
-/***/ }),
+/* 306 */,
 /* 307 */,
 /* 308 */,
 /* 309 */,
@@ -29251,168 +28440,8 @@ module.exports = function(arr, iter, context) {
 };
 
 /***/ }),
-/* 313 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visitParents
-
-var convert = __webpack_require__(419)
-
-var CONTINUE = true
-var SKIP = 'skip'
-var EXIT = false
-
-visitParents.CONTINUE = CONTINUE
-visitParents.SKIP = SKIP
-visitParents.EXIT = EXIT
-
-function visitParents(tree, test, visitor, reverse) {
-  var is
-
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  is = convert(test)
-
-  one(tree, null, [])
-
-  // Visit a single node.
-  function one(node, index, parents) {
-    var result = []
-    var subresult
-
-    if (!test || is(node, index, parents[parents.length - 1] || null)) {
-      result = toResult(visitor(node, parents))
-
-      if (result[0] === EXIT) {
-        return result
-      }
-    }
-
-    if (node.children && result[0] !== SKIP) {
-      subresult = toResult(all(node.children, parents.concat(node)))
-      return subresult[0] === EXIT ? subresult : result
-    }
-
-    return result
-  }
-
-  // Visit children in `parent`.
-  function all(children, parents) {
-    var min = -1
-    var step = reverse ? -1 : 1
-    var index = (reverse ? children.length : min) + step
-    var result
-
-    while (index > min && index < children.length) {
-      result = one(children[index], index, parents)
-
-      if (result[0] === EXIT) {
-        return result
-      }
-
-      index = typeof result[1] === 'number' ? result[1] : index + step
-    }
-  }
-}
-
-function toResult(value) {
-  if (value !== null && typeof value === 'object' && 'length' in value) {
-    return value
-  }
-
-  if (typeof value === 'number') {
-    return [CONTINUE, value]
-  }
-
-  return [value]
-}
-
-
-/***/ }),
-/* 314 */
-/***/ (function(module) {
-
-"use strict";
-
-
-module.exports = thematicBreak
-
-var tab = '\t'
-var lineFeed = '\n'
-var space = ' '
-var asterisk = '*'
-var dash = '-'
-var underscore = '_'
-
-var maxCount = 3
-
-function thematicBreak(eat, value, silent) {
-  var index = -1
-  var length = value.length + 1
-  var subvalue = ''
-  var character
-  var marker
-  var markerCount
-  var queue
-
-  while (++index < length) {
-    character = value.charAt(index)
-
-    if (character !== tab && character !== space) {
-      break
-    }
-
-    subvalue += character
-  }
-
-  if (
-    character !== asterisk &&
-    character !== dash &&
-    character !== underscore
-  ) {
-    return
-  }
-
-  marker = character
-  subvalue += character
-  markerCount = 1
-  queue = ''
-
-  while (++index < length) {
-    character = value.charAt(index)
-
-    if (character === marker) {
-      markerCount++
-      subvalue += queue + marker
-      queue = ''
-    } else if (character === space) {
-      queue += character
-    } else if (
-      markerCount >= maxCount &&
-      (!character || character === lineFeed)
-    ) {
-      subvalue += queue
-
-      if (silent) {
-        return true
-      }
-
-      return eat(subvalue)({type: 'thematicBreak'})
-    } else {
-      return
-    }
-  }
-}
-
-
-/***/ }),
+/* 313 */,
+/* 314 */,
 /* 315 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -29471,86 +28500,24 @@ function cssLink(node) {
 
 /***/ }),
 /* 316 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
+/***/ (function(module) {
 
 "use strict";
 
 
-module.exports = visitParents
+module.exports = locate
 
-var convert = __webpack_require__(145)
+function locate(value, fromIndex) {
+  var link = value.indexOf('[', fromIndex)
+  var image = value.indexOf('![', fromIndex)
 
-var CONTINUE = true
-var SKIP = 'skip'
-var EXIT = false
-
-visitParents.CONTINUE = CONTINUE
-visitParents.SKIP = SKIP
-visitParents.EXIT = EXIT
-
-function visitParents(tree, test, visitor, reverse) {
-  var is
-
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
+  if (image === -1) {
+    return link
   }
 
-  is = convert(test)
-
-  one(tree, null, [])
-
-  // Visit a single node.
-  function one(node, index, parents) {
-    var result = []
-    var subresult
-
-    if (!test || is(node, index, parents[parents.length - 1] || null)) {
-      result = toResult(visitor(node, parents))
-
-      if (result[0] === EXIT) {
-        return result
-      }
-    }
-
-    if (node.children && result[0] !== SKIP) {
-      subresult = toResult(all(node.children, parents.concat(node)))
-      return subresult[0] === EXIT ? subresult : result
-    }
-
-    return result
-  }
-
-  // Visit children in `parent`.
-  function all(children, parents) {
-    var min = -1
-    var step = reverse ? -1 : 1
-    var index = (reverse ? children.length : min) + step
-    var result
-
-    while (index > min && index < children.length) {
-      result = one(children[index], index, parents)
-
-      if (result[0] === EXIT) {
-        return result
-      }
-
-      index = typeof result[1] === 'number' ? result[1] : index + step
-    }
-  }
-}
-
-function toResult(value) {
-  if (value !== null && typeof value === 'object' && 'length' in value) {
-    return value
-  }
-
-  if (typeof value === 'number') {
-    return [CONTINUE, value]
-  }
-
-  return [value]
+  // Link can never be `-1` if an image is found, so we don’t need to check
+  // for that :)
+  return link < image ? link : image
 }
 
 
@@ -29563,7 +28530,7 @@ function toResult(value) {
 
 module.exports = list
 
-var wrap = __webpack_require__(323)
+var wrap = __webpack_require__(463)
 var all = __webpack_require__(520)
 
 function list(h, node) {
@@ -30066,44 +29033,7 @@ function strong(eat, value, silent) {
 
 
 /***/ }),
-/* 323 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = wrap
-
-var u = __webpack_require__(302)
-
-// Wrap `nodes` with line feeds between each entry.
-// Optionally adds line feeds at the start and end.
-function wrap(nodes, loose) {
-  var result = []
-  var index = -1
-  var length = nodes.length
-
-  if (loose) {
-    result.push(u('text', '\n'))
-  }
-
-  while (++index < length) {
-    if (index) {
-      result.push(u('text', '\n'))
-    }
-
-    result.push(nodes[index])
-  }
-
-  if (loose && nodes.length !== 0) {
-    result.push(u('text', '\n'))
-  }
-
-  return result
-}
-
-
-/***/ }),
+/* 323 */,
 /* 324 */,
 /* 325 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
@@ -30346,42 +29276,7 @@ function table(eat, value, silent) {
 /***/ }),
 /* 326 */,
 /* 327 */,
-/* 328 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visit
-
-var visitParents = __webpack_require__(611)
-
-var CONTINUE = visitParents.CONTINUE
-var SKIP = visitParents.SKIP
-var EXIT = visitParents.EXIT
-
-visit.CONTINUE = CONTINUE
-visit.SKIP = SKIP
-visit.EXIT = EXIT
-
-function visit(tree, test, visitor, reverse) {
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  visitParents(tree, test, overload, reverse)
-
-  function overload(node, parents) {
-    var parent = parents[parents.length - 1]
-    var index = parent ? parent.children.indexOf(node) : null
-    return visitor(node, index, parent)
-  }
-}
-
-
-/***/ }),
+/* 328 */,
 /* 329 */,
 /* 330 */
 /***/ (function(module) {
@@ -30409,100 +29304,7 @@ module.exports = rebaseRemoteMap;
 
 
 /***/ }),
-/* 332 */
-/***/ (function(module) {
-
-"use strict";
-
-
-module.exports = convert
-
-function convert(test) {
-  if (typeof test === 'string') {
-    return typeFactory(test)
-  }
-
-  if (test === null || test === undefined) {
-    return ok
-  }
-
-  if (typeof test === 'object') {
-    return ('length' in test ? anyFactory : matchesFactory)(test)
-  }
-
-  if (typeof test === 'function') {
-    return test
-  }
-
-  throw new Error('Expected function, string, or object as test')
-}
-
-function convertAll(tests) {
-  var results = []
-  var length = tests.length
-  var index = -1
-
-  while (++index < length) {
-    results[index] = convert(tests[index])
-  }
-
-  return results
-}
-
-// Utility assert each property in `test` is represented in `node`, and each
-// values are strictly equal.
-function matchesFactory(test) {
-  return matches
-
-  function matches(node) {
-    var key
-
-    for (key in test) {
-      if (node[key] !== test[key]) {
-        return false
-      }
-    }
-
-    return true
-  }
-}
-
-function anyFactory(tests) {
-  var checks = convertAll(tests)
-  var length = checks.length
-
-  return matches
-
-  function matches() {
-    var index = -1
-
-    while (++index < length) {
-      if (checks[index].apply(this, arguments)) {
-        return true
-      }
-    }
-
-    return false
-  }
-}
-
-// Utility to convert a string into a function which checks a given node’s type
-// for said string.
-function typeFactory(test) {
-  return type
-
-  function type(node) {
-    return Boolean(node && node.type === test)
-  }
-}
-
-// Utility to return true.
-function ok() {
-  return true
-}
-
-
-/***/ }),
+/* 332 */,
 /* 333 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -31198,8 +30000,8 @@ exports.computeSourceURL = computeSourceURL;
 
 module.exports = listItem
 
-var u = __webpack_require__(302)
-var wrap = __webpack_require__(323)
+var u = __webpack_require__(29)
+var wrap = __webpack_require__(463)
 var all = __webpack_require__(520)
 
 function listItem(h, node, parent) {
@@ -32051,95 +30853,78 @@ function footnoteDefinition(eat, value, silent) {
 
 /***/ }),
 /* 361 */
-/***/ (function(module) {
+/***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
+/**
+ * @fileoverview
+ *   Minify JavaScript URLs.
+ * @example
+ *   <img src="javascript:alert(true)">
+ */
 
 
-module.exports = convert
 
-function convert(test) {
-  if (typeof test === 'string') {
-    return typeFactory(test)
-  }
+var Uglify = __webpack_require__(252)
+var trim = __webpack_require__(860)
+var visit = __webpack_require__(83)
+var has = __webpack_require__(922)
+var is = __webpack_require__(941)
+var attributes = __webpack_require__(345)
 
-  if (test === null || test === undefined) {
-    return ok
-  }
+module.exports = url
 
-  if (typeof test === 'object') {
-    return ('length' in test ? anyFactory : matchesFactory)(test)
-  }
+var own = {}.hasOwnProperty
 
-  if (typeof test === 'function') {
-    return test
-  }
+/* eslint-disable no-script-url */
+var protocol = 'javascript:'
+/* eslint-enable no-script-url */
 
-  throw new Error('Expected function, string, or object as test')
+var prefix = 'function a(){'
+var suffix = '}a();'
+
+function url() {
+  return transform
 }
 
-function convertAll(tests) {
-  var results = []
-  var length = tests.length
-  var index = -1
-
-  while (++index < length) {
-    results[index] = convert(tests[index])
-  }
-
-  return results
+function transform(tree) {
+  visit(tree, 'element', visitor)
 }
 
-// Utility assert each property in `test` is represented in `node`, and each
-// values are strictly equal.
-function matchesFactory(test) {
-  return matches
+function visitor(node) {
+  var props = node.properties
+  var prop
 
-  function matches(node) {
-    var key
-
-    for (key in test) {
-      if (node[key] !== test[key]) {
-        return false
-      }
+  for (prop in props) {
+    if (
+      has(node, prop) &&
+      own.call(attributes, prop) &&
+      is(node, attributes[prop])
+    ) {
+      props[prop] = minify(props[prop])
     }
-
-    return true
   }
 }
 
-function anyFactory(tests) {
-  var checks = convertAll(tests)
-  var length = checks.length
+function minify(value) {
+  var val = value
+  var output
 
-  return matches
+  if (
+    typeof val === 'string' &&
+    val.slice(0, protocol.length).toLowerCase() === protocol
+  ) {
+    val = val.slice(protocol.length)
 
-  function matches() {
-    var index = -1
+    try {
+      output = Uglify.minify(prefix + val + suffix)
+      val = output.code.slice(prefix.length, -suffix.length)
+    } catch (error) {}
 
-    while (++index < length) {
-      if (checks[index].apply(this, arguments)) {
-        return true
-      }
-    }
-
-    return false
+    val = protocol + trim(val)
   }
-}
 
-// Utility to convert a string into a function which checks a given node’s type
-// for said string.
-function typeFactory(test) {
-  return type
-
-  function type(node) {
-    return Boolean(node && node.type === test)
-  }
-}
-
-// Utility to return true.
-function ok() {
-  return true
+  return val
 }
 
 
@@ -32204,91 +30989,7 @@ function t4Templating(Prism) {
 
 
 /***/ }),
-/* 363 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visitParents
-
-var convert = __webpack_require__(664)
-
-var CONTINUE = true
-var SKIP = 'skip'
-var EXIT = false
-
-visitParents.CONTINUE = CONTINUE
-visitParents.SKIP = SKIP
-visitParents.EXIT = EXIT
-
-function visitParents(tree, test, visitor, reverse) {
-  var is
-
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  is = convert(test)
-
-  one(tree, null, [])
-
-  // Visit a single node.
-  function one(node, index, parents) {
-    var result = []
-    var subresult
-
-    if (!test || is(node, index, parents[parents.length - 1] || null)) {
-      result = toResult(visitor(node, parents))
-
-      if (result[0] === EXIT) {
-        return result
-      }
-    }
-
-    if (node.children && result[0] !== SKIP) {
-      subresult = toResult(all(node.children, parents.concat(node)))
-      return subresult[0] === EXIT ? subresult : result
-    }
-
-    return result
-  }
-
-  // Visit children in `parent`.
-  function all(children, parents) {
-    var min = -1
-    var step = reverse ? -1 : 1
-    var index = (reverse ? children.length : min) + step
-    var result
-
-    while (index > min && index < children.length) {
-      result = one(children[index], index, parents)
-
-      if (result[0] === EXIT) {
-        return result
-      }
-
-      index = typeof result[1] === 'number' ? result[1] : index + step
-    }
-  }
-}
-
-function toResult(value) {
-  if (value !== null && typeof value === 'object' && 'length' in value) {
-    return value
-  }
-
-  if (typeof value === 'number') {
-    return [CONTINUE, value]
-  }
-
-  return [value]
-}
-
-
-/***/ }),
+/* 363 */,
 /* 364 */
 /***/ (function(module) {
 
@@ -34828,100 +33529,7 @@ function jsx(Prism) {
 
 
 /***/ }),
-/* 419 */
-/***/ (function(module) {
-
-"use strict";
-
-
-module.exports = convert
-
-function convert(test) {
-  if (typeof test === 'string') {
-    return typeFactory(test)
-  }
-
-  if (test === null || test === undefined) {
-    return ok
-  }
-
-  if (typeof test === 'object') {
-    return ('length' in test ? anyFactory : matchesFactory)(test)
-  }
-
-  if (typeof test === 'function') {
-    return test
-  }
-
-  throw new Error('Expected function, string, or object as test')
-}
-
-function convertAll(tests) {
-  var results = []
-  var length = tests.length
-  var index = -1
-
-  while (++index < length) {
-    results[index] = convert(tests[index])
-  }
-
-  return results
-}
-
-// Utility assert each property in `test` is represented in `node`, and each
-// values are strictly equal.
-function matchesFactory(test) {
-  return matches
-
-  function matches(node) {
-    var key
-
-    for (key in test) {
-      if (node[key] !== test[key]) {
-        return false
-      }
-    }
-
-    return true
-  }
-}
-
-function anyFactory(tests) {
-  var checks = convertAll(tests)
-  var length = checks.length
-
-  return matches
-
-  function matches() {
-    var index = -1
-
-    while (++index < length) {
-      if (checks[index].apply(this, arguments)) {
-        return true
-      }
-    }
-
-    return false
-  }
-}
-
-// Utility to convert a string into a function which checks a given node’s type
-// for said string.
-function typeFactory(test) {
-  return type
-
-  function type(node) {
-    return Boolean(node && node.type === test)
-  }
-}
-
-// Utility to return true.
-function ok() {
-  return true
-}
-
-
-/***/ }),
+/* 419 */,
 /* 420 */
 /***/ (function(module) {
 
@@ -34935,115 +33543,8 @@ module.exports = isImport;
 
 
 /***/ }),
-/* 421 */
-/***/ (function(module) {
-
-"use strict";
-
-
-module.exports = convert
-
-function convert(test) {
-  if (typeof test === 'string') {
-    return typeFactory(test)
-  }
-
-  if (test === null || test === undefined) {
-    return ok
-  }
-
-  if (typeof test === 'object') {
-    return ('length' in test ? anyFactory : matchesFactory)(test)
-  }
-
-  if (typeof test === 'function') {
-    return test
-  }
-
-  throw new Error('Expected function, string, or object as test')
-}
-
-function convertAll(tests) {
-  var results = []
-  var length = tests.length
-  var index = -1
-
-  while (++index < length) {
-    results[index] = convert(tests[index])
-  }
-
-  return results
-}
-
-// Utility assert each property in `test` is represented in `node`, and each
-// values are strictly equal.
-function matchesFactory(test) {
-  return matches
-
-  function matches(node) {
-    var key
-
-    for (key in test) {
-      if (node[key] !== test[key]) {
-        return false
-      }
-    }
-
-    return true
-  }
-}
-
-function anyFactory(tests) {
-  var checks = convertAll(tests)
-  var length = checks.length
-
-  return matches
-
-  function matches() {
-    var index = -1
-
-    while (++index < length) {
-      if (checks[index].apply(this, arguments)) {
-        return true
-      }
-    }
-
-    return false
-  }
-}
-
-// Utility to convert a string into a function which checks a given node’s type
-// for said string.
-function typeFactory(test) {
-  return type
-
-  function type(node) {
-    return Boolean(node && node.type === test)
-  }
-}
-
-// Utility to return true.
-function ok() {
-  return true
-}
-
-
-/***/ }),
-/* 422 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-try {
-  var util = __webpack_require__(669);
-  /* istanbul ignore next */
-  if (typeof util.inherits !== 'function') throw '';
-  module.exports = util.inherits;
-} catch (e) {
-  /* istanbul ignore next */
-  module.exports = __webpack_require__(566);
-}
-
-
-/***/ }),
+/* 421 */,
+/* 422 */,
 /* 423 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -35059,7 +33560,7 @@ try {
 
 var uniq = __webpack_require__(939)
 var array = __webpack_require__(224)
-var visit = __webpack_require__(89)
+var visit = __webpack_require__(83)
 var is = __webpack_require__(941)
 var attributes = __webpack_require__(498)
 
@@ -35095,91 +33596,7 @@ function visitor(node) {
 
 
 /***/ }),
-/* 424 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visitParents
-
-var convert = __webpack_require__(683)
-
-var CONTINUE = true
-var SKIP = 'skip'
-var EXIT = false
-
-visitParents.CONTINUE = CONTINUE
-visitParents.SKIP = SKIP
-visitParents.EXIT = EXIT
-
-function visitParents(tree, test, visitor, reverse) {
-  var is
-
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  is = convert(test)
-
-  one(tree, null, [])
-
-  // Visit a single node.
-  function one(node, index, parents) {
-    var result = []
-    var subresult
-
-    if (!test || is(node, index, parents[parents.length - 1] || null)) {
-      result = toResult(visitor(node, parents))
-
-      if (result[0] === EXIT) {
-        return result
-      }
-    }
-
-    if (node.children && result[0] !== SKIP) {
-      subresult = toResult(all(node.children, parents.concat(node)))
-      return subresult[0] === EXIT ? subresult : result
-    }
-
-    return result
-  }
-
-  // Visit children in `parent`.
-  function all(children, parents) {
-    var min = -1
-    var step = reverse ? -1 : 1
-    var index = (reverse ? children.length : min) + step
-    var result
-
-    while (index > min && index < children.length) {
-      result = one(children[index], index, parents)
-
-      if (result[0] === EXIT) {
-        return result
-      }
-
-      index = typeof result[1] === 'number' ? result[1] : index + step
-    }
-  }
-}
-
-function toResult(value) {
-  if (value !== null && typeof value === 'object' && 'length' in value) {
-    return value
-  }
-
-  if (typeof value === 'number') {
-    return [CONTINUE, value]
-  }
-
-  return [value]
-}
-
-
-/***/ }),
+/* 424 */,
 /* 425 */,
 /* 426 */,
 /* 427 */
@@ -35467,17 +33884,24 @@ function textile(Prism) {
 
 "use strict";
 
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const os = __webpack_require__(87);
+const os = __importStar(__webpack_require__(87));
 /**
  * Commands
  *
  * Command Format:
- *   ##[name key=value;key=value]message
+ *   ::name key=value,key=value::message
  *
  * Examples:
- *   ##[warning]This is the user warning message
- *   ##[set-secret name=mypassword]definitelyNotAPassword!
+ *   ::warning::This is the message
+ *   ::set-env name=MY_VAR::some value
  */
 function issueCommand(command, properties, message) {
     const cmd = new Command(command, properties, message);
@@ -35502,34 +33926,39 @@ class Command {
         let cmdStr = CMD_STRING + this.command;
         if (this.properties && Object.keys(this.properties).length > 0) {
             cmdStr += ' ';
+            let first = true;
             for (const key in this.properties) {
                 if (this.properties.hasOwnProperty(key)) {
                     const val = this.properties[key];
                     if (val) {
-                        // safely append the val - avoid blowing up when attempting to
-                        // call .replace() if message is not a string for some reason
-                        cmdStr += `${key}=${escape(`${val || ''}`)},`;
+                        if (first) {
+                            first = false;
+                        }
+                        else {
+                            cmdStr += ',';
+                        }
+                        cmdStr += `${key}=${escapeProperty(val)}`;
                     }
                 }
             }
         }
-        cmdStr += CMD_STRING;
-        // safely append the message - avoid blowing up when attempting to
-        // call .replace() if message is not a string for some reason
-        const message = `${this.message || ''}`;
-        cmdStr += escapeData(message);
+        cmdStr += `${CMD_STRING}${escapeData(this.message)}`;
         return cmdStr;
     }
 }
 function escapeData(s) {
-    return s.replace(/\r/g, '%0D').replace(/\n/g, '%0A');
+    return (s || '')
+        .replace(/%/g, '%25')
+        .replace(/\r/g, '%0D')
+        .replace(/\n/g, '%0A');
 }
-function escape(s) {
-    return s
+function escapeProperty(s) {
+    return (s || '')
+        .replace(/%/g, '%25')
         .replace(/\r/g, '%0D')
         .replace(/\n/g, '%0A')
-        .replace(/]/g, '%5D')
-        .replace(/;/g, '%3B');
+        .replace(/:/g, '%3A')
+        .replace(/,/g, '%2C');
 }
 //# sourceMappingURL=command.js.map
 
@@ -35867,42 +34296,7 @@ function mark(values, key, value) {
 
 
 /***/ }),
-/* 443 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visit
-
-var visitParents = __webpack_require__(313)
-
-var CONTINUE = visitParents.CONTINUE
-var SKIP = visitParents.SKIP
-var EXIT = visitParents.EXIT
-
-visit.CONTINUE = CONTINUE
-visit.SKIP = SKIP
-visit.EXIT = EXIT
-
-function visit(tree, test, visitor, reverse) {
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  visitParents(tree, test, overload, reverse)
-
-  function overload(node, parents) {
-    var parent = parents[parents.length - 1]
-    var index = parent ? parent.children.indexOf(node) : null
-    return visitor(node, index, parent)
-  }
-}
-
-
-/***/ }),
+/* 443 */,
 /* 444 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -36218,100 +34612,7 @@ exports.MappingList = MappingList;
 
 
 /***/ }),
-/* 452 */
-/***/ (function(module) {
-
-"use strict";
-
-
-module.exports = convert
-
-function convert(test) {
-  if (typeof test === 'string') {
-    return typeFactory(test)
-  }
-
-  if (test === null || test === undefined) {
-    return ok
-  }
-
-  if (typeof test === 'object') {
-    return ('length' in test ? anyFactory : matchesFactory)(test)
-  }
-
-  if (typeof test === 'function') {
-    return test
-  }
-
-  throw new Error('Expected function, string, or object as test')
-}
-
-function convertAll(tests) {
-  var results = []
-  var length = tests.length
-  var index = -1
-
-  while (++index < length) {
-    results[index] = convert(tests[index])
-  }
-
-  return results
-}
-
-// Utility assert each property in `test` is represented in `node`, and each
-// values are strictly equal.
-function matchesFactory(test) {
-  return matches
-
-  function matches(node) {
-    var key
-
-    for (key in test) {
-      if (node[key] !== test[key]) {
-        return false
-      }
-    }
-
-    return true
-  }
-}
-
-function anyFactory(tests) {
-  var checks = convertAll(tests)
-  var length = checks.length
-
-  return matches
-
-  function matches() {
-    var index = -1
-
-    while (++index < length) {
-      if (checks[index].apply(this, arguments)) {
-        return true
-      }
-    }
-
-    return false
-  }
-}
-
-// Utility to convert a string into a function which checks a given node’s type
-// for said string.
-function typeFactory(test) {
-  return type
-
-  function type(node) {
-    return Boolean(node && node.type === test)
-  }
-}
-
-// Utility to return true.
-function ok() {
-  return true
-}
-
-
-/***/ }),
+/* 452 */,
 /* 453 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -36513,32 +34814,34 @@ module.exports = overridesNonComponentShorthand;
 "use strict";
 
 
-module.exports = one
+module.exports = wrap
 
-var own = {}.hasOwnProperty
+var u = __webpack_require__(29)
 
-var handlers = {}
+// Wrap `nodes` with line feeds between each entry.
+// Optionally adds line feeds at the start and end.
+function wrap(nodes, loose) {
+  var result = []
+  var index = -1
+  var length = nodes.length
 
-handlers.root = __webpack_require__(143)
-handlers.text = __webpack_require__(553)
-handlers.element = __webpack_require__(500)
-handlers.doctype = __webpack_require__(341)
-handlers.comment = __webpack_require__(342)
-handlers.raw = __webpack_require__(771)
-
-// Stringify `node`.
-function one(ctx, node, index, parent) {
-  var type = node && node.type
-
-  if (!type) {
-    throw new Error('Expected node, not `' + node + '`')
+  if (loose) {
+    result.push(u('text', '\n'))
   }
 
-  if (!own.call(handlers, type)) {
-    throw new Error('Cannot compile unknown node `' + type + '`')
+  while (++index < length) {
+    if (index) {
+      result.push(u('text', '\n'))
+    }
+
+    result.push(nodes[index])
   }
 
-  return handlers[type](ctx, node, index, parent)
+  if (loose && nodes.length !== 0) {
+    result.push(u('text', '\n'))
+  }
+
+  return result
 }
 
 
@@ -36595,7 +34898,7 @@ function cmake(Prism) {
 module.exports = inlineCode
 
 var collapse = __webpack_require__(724)
-var u = __webpack_require__(302)
+var u = __webpack_require__(29)
 
 function inlineCode(h, node) {
   return h(node, 'code', [u('text', collapse(node.value))])
@@ -37377,7 +35680,7 @@ module.exports = {
 
 
 var array = __webpack_require__(224)
-var visit = __webpack_require__(616)
+var visit = __webpack_require__(83)
 var is = __webpack_require__(941)
 var handler = __webpack_require__(778)
 var attributes = __webpack_require__(890)
@@ -37462,10 +35765,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const command_1 = __webpack_require__(431);
-const os = __webpack_require__(87);
-const path = __webpack_require__(622);
+const os = __importStar(__webpack_require__(87));
+const path = __importStar(__webpack_require__(622));
 /**
  * The code to exit an action
  */
@@ -37484,7 +35794,7 @@ var ExitCode;
 // Variables
 //-----------------------------------------------------------------------
 /**
- * sets env variable for this action and future actions in the job
+ * Sets env variable for this action and future actions in the job
  * @param name the name of the variable to set
  * @param val the value of the variable
  */
@@ -37494,18 +35804,13 @@ function exportVariable(name, val) {
 }
 exports.exportVariable = exportVariable;
 /**
- * exports the variable and registers a secret which will get masked from logs
- * @param name the name of the variable to set
- * @param val value of the secret
+ * Registers a secret which will get masked from logs
+ * @param secret value of the secret
  */
-function exportSecret(name, val) {
-    exportVariable(name, val);
-    // the runner will error with not implemented
-    // leaving the function but raising the error earlier
-    command_1.issueCommand('set-secret', {}, val);
-    throw new Error('Not implemented.');
+function setSecret(secret) {
+    command_1.issueCommand('add-mask', {}, secret);
 }
-exports.exportSecret = exportSecret;
+exports.setSecret = setSecret;
 /**
  * Prepends inputPath to the PATH (for this action and future actions)
  * @param inputPath
@@ -37628,6 +35933,29 @@ function group(name, fn) {
     });
 }
 exports.group = group;
+//-----------------------------------------------------------------------
+// Wrapper action state
+//-----------------------------------------------------------------------
+/**
+ * Saves state for current action, the state can only be retrieved by this action's post job execution.
+ *
+ * @param     name     name of the state to store
+ * @param     value    value to store
+ */
+function saveState(name, value) {
+    command_1.issueCommand('save-state', { name }, value);
+}
+exports.saveState = saveState;
+/**
+ * Gets the value of an state set by this action's main execution.
+ *
+ * @param     name     name of the state to get
+ * @returns   string
+ */
+function getState(name) {
+    return process.env[`STATE_${name}`] || '';
+}
+exports.getState = getState;
 //# sourceMappingURL=core.js.map
 
 /***/ }),
@@ -37878,7 +36206,7 @@ function processing(Prism) {
 
 module.exports = blockquote
 
-var wrap = __webpack_require__(323)
+var wrap = __webpack_require__(463)
 var all = __webpack_require__(520)
 
 function blockquote(h, node) {
@@ -39038,291 +37366,45 @@ exports.IndexedSourceMapConsumer = IndexedSourceMapConsumer;
 
 
 /***/ }),
-/* 477 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visit
-
-var visitParents = __webpack_require__(295)
-
-var CONTINUE = visitParents.CONTINUE
-var SKIP = visitParents.SKIP
-var EXIT = visitParents.EXIT
-
-visit.CONTINUE = CONTINUE
-visit.SKIP = SKIP
-visit.EXIT = EXIT
-
-function visit(tree, test, visitor, reverse) {
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  visitParents(tree, test, overload, reverse)
-
-  function overload(node, parents) {
-    var parent = parents[parents.length - 1]
-    var index = parent ? parent.children.indexOf(node) : null
-    return visitor(node, index, parent)
-  }
-}
-
-
-/***/ }),
+/* 477 */,
 /* 478 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
-/**
- * @fileoverview
- *   Minify JavaScript URLs.
- * @example
- *   <img src="javascript:alert(true)">
- */
 
 
-
-var Uglify = __webpack_require__(252)
-var trim = __webpack_require__(860)
-var visit = __webpack_require__(162)
-var has = __webpack_require__(922)
-var is = __webpack_require__(941)
-var attributes = __webpack_require__(345)
-
-module.exports = url
+module.exports = one
 
 var own = {}.hasOwnProperty
 
-/* eslint-disable no-script-url */
-var protocol = 'javascript:'
-/* eslint-enable no-script-url */
+var handlers = {}
 
-var prefix = 'function a(){'
-var suffix = '}a();'
+handlers.root = __webpack_require__(143)
+handlers.text = __webpack_require__(553)
+handlers.element = __webpack_require__(500)
+handlers.doctype = __webpack_require__(341)
+handlers.comment = __webpack_require__(342)
+handlers.raw = __webpack_require__(771)
 
-function url() {
-  return transform
-}
+// Stringify `node`.
+function one(ctx, node, index, parent) {
+  var type = node && node.type
 
-function transform(tree) {
-  visit(tree, 'element', visitor)
-}
-
-function visitor(node) {
-  var props = node.properties
-  var prop
-
-  for (prop in props) {
-    if (
-      has(node, prop) &&
-      own.call(attributes, prop) &&
-      is(node, attributes[prop])
-    ) {
-      props[prop] = minify(props[prop])
-    }
-  }
-}
-
-function minify(value) {
-  var val = value
-  var output
-
-  if (
-    typeof val === 'string' &&
-    val.slice(0, protocol.length).toLowerCase() === protocol
-  ) {
-    val = val.slice(protocol.length)
-
-    try {
-      output = Uglify.minify(prefix + val + suffix)
-      val = output.code.slice(prefix.length, -suffix.length)
-    } catch (error) {}
-
-    val = protocol + trim(val)
+  if (!type) {
+    throw new Error('Expected node, not `' + node + '`')
   }
 
-  return val
+  if (!own.call(handlers, type)) {
+    throw new Error('Cannot compile unknown node `' + type + '`')
+  }
+
+  return handlers[type](ctx, node, index, parent)
 }
 
 
 /***/ }),
-/* 479 */
-/***/ (function(module) {
-
-"use strict";
-
-
-module.exports = convert
-
-function convert(test) {
-  if (typeof test === 'string') {
-    return typeFactory(test)
-  }
-
-  if (test === null || test === undefined) {
-    return ok
-  }
-
-  if (typeof test === 'object') {
-    return ('length' in test ? anyFactory : matchesFactory)(test)
-  }
-
-  if (typeof test === 'function') {
-    return test
-  }
-
-  throw new Error('Expected function, string, or object as test')
-}
-
-function convertAll(tests) {
-  var results = []
-  var length = tests.length
-  var index = -1
-
-  while (++index < length) {
-    results[index] = convert(tests[index])
-  }
-
-  return results
-}
-
-// Utility assert each property in `test` is represented in `node`, and each
-// values are strictly equal.
-function matchesFactory(test) {
-  return matches
-
-  function matches(node) {
-    var key
-
-    for (key in test) {
-      if (node[key] !== test[key]) {
-        return false
-      }
-    }
-
-    return true
-  }
-}
-
-function anyFactory(tests) {
-  var checks = convertAll(tests)
-  var length = checks.length
-
-  return matches
-
-  function matches() {
-    var index = -1
-
-    while (++index < length) {
-      if (checks[index].apply(this, arguments)) {
-        return true
-      }
-    }
-
-    return false
-  }
-}
-
-// Utility to convert a string into a function which checks a given node’s type
-// for said string.
-function typeFactory(test) {
-  return type
-
-  function type(node) {
-    return Boolean(node && node.type === test)
-  }
-}
-
-// Utility to return true.
-function ok() {
-  return true
-}
-
-
-/***/ }),
-/* 480 */
-/***/ (function(module) {
-
-"use strict";
-
-
-// Characters.
-var nil = '\0'
-var ampersand = '&'
-var space = ' '
-var tab = '\t'
-var graveAccent = '`'
-var quotationMark = '"'
-var apostrophe = "'"
-var equalsTo = '='
-var lessThan = '<'
-var greaterThan = '>'
-var slash = '/'
-var lineFeed = '\n'
-var carriageReturn = '\r'
-var formFeed = '\f'
-
-var whitespace = [space, tab, lineFeed, carriageReturn, formFeed]
-
-// See: <https://html.spec.whatwg.org/#attribute-name-state>.
-var name = whitespace.concat(ampersand, slash, greaterThan, equalsTo)
-
-// See: <https://html.spec.whatwg.org/#attribute-value-(unquoted)-state>.
-var unquoted = whitespace.concat(ampersand, greaterThan)
-var unquotedSafe = unquoted.concat(
-  nil,
-  quotationMark,
-  apostrophe,
-  lessThan,
-  equalsTo,
-  graveAccent
-)
-
-// See: <https://html.spec.whatwg.org/#attribute-value-(single-quoted)-state>.
-var singleQuoted = [ampersand, apostrophe]
-
-// See: <https://html.spec.whatwg.org/#attribute-value-(double-quoted)-state>.
-var doubleQuoted = [ampersand, quotationMark]
-
-// Maps of subsets.
-// Each value is a matrix of tuples.
-// The first value causes parse errors, the second is valid.
-// Of both values, the first value is unsafe, and the second is safe.
-module.exports = {
-  name: [
-    [name, name.concat(quotationMark, apostrophe, graveAccent)],
-    [
-      name.concat(nil, quotationMark, apostrophe, lessThan),
-      name.concat(nil, quotationMark, apostrophe, lessThan, graveAccent)
-    ]
-  ],
-  unquoted: [
-    [unquoted, unquotedSafe],
-    [unquotedSafe, unquotedSafe]
-  ],
-  single: [
-    [singleQuoted, singleQuoted.concat(quotationMark, graveAccent)],
-    [
-      singleQuoted.concat(nil),
-      singleQuoted.concat(nil, quotationMark, graveAccent)
-    ]
-  ],
-  double: [
-    [doubleQuoted, doubleQuoted.concat(apostrophe, graveAccent)],
-    [
-      doubleQuoted.concat(nil),
-      doubleQuoted.concat(nil, apostrophe, graveAccent)
-    ]
-  ]
-}
-
-
-/***/ }),
+/* 479 */,
+/* 480 */,
 /* 481 */,
 /* 482 */
 /***/ (function(module) {
@@ -39452,81 +37534,56 @@ module.exports = cloneArray;
 "use strict";
 
 
-module.exports = visitParents
+module.exports = table
 
-var convert = __webpack_require__(767)
+var position = __webpack_require__(960)
+var wrap = __webpack_require__(463)
+var all = __webpack_require__(520)
 
-var CONTINUE = true
-var SKIP = 'skip'
-var EXIT = false
+function table(h, node) {
+  var rows = node.children
+  var index = rows.length
+  var align = node.align
+  var alignLength = align.length
+  var result = []
+  var pos
+  var row
+  var out
+  var name
+  var cell
 
-visitParents.CONTINUE = CONTINUE
-visitParents.SKIP = SKIP
-visitParents.EXIT = EXIT
+  while (index--) {
+    row = rows[index].children
+    name = index === 0 ? 'th' : 'td'
+    pos = alignLength
+    out = []
 
-function visitParents(tree, test, visitor, reverse) {
-  var is
-
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  is = convert(test)
-
-  one(tree, null, [])
-
-  // Visit a single node.
-  function one(node, index, parents) {
-    var result = []
-    var subresult
-
-    if (!test || is(node, index, parents[parents.length - 1] || null)) {
-      result = toResult(visitor(node, parents))
-
-      if (result[0] === EXIT) {
-        return result
-      }
+    while (pos--) {
+      cell = row[pos]
+      out[pos] = h(cell, name, {align: align[pos]}, cell ? all(h, cell) : [])
     }
 
-    if (node.children && result[0] !== SKIP) {
-      subresult = toResult(all(node.children, parents.concat(node)))
-      return subresult[0] === EXIT ? subresult : result
-    }
-
-    return result
+    result[index] = h(rows[index], 'tr', wrap(out, true))
   }
 
-  // Visit children in `parent`.
-  function all(children, parents) {
-    var min = -1
-    var step = reverse ? -1 : 1
-    var index = (reverse ? children.length : min) + step
-    var result
-
-    while (index > min && index < children.length) {
-      result = one(children[index], index, parents)
-
-      if (result[0] === EXIT) {
-        return result
-      }
-
-      index = typeof result[1] === 'number' ? result[1] : index + step
-    }
-  }
-}
-
-function toResult(value) {
-  if (value !== null && typeof value === 'object' && 'length' in value) {
-    return value
-  }
-
-  if (typeof value === 'number') {
-    return [CONTINUE, value]
-  }
-
-  return [value]
+  return h(
+    node,
+    'table',
+    wrap(
+      [
+        h(result[0].position, 'thead', wrap([result[0]], true)),
+        h(
+          {
+            start: position.start(result[1]),
+            end: position.end(result[result.length - 1])
+          },
+          'tbody',
+          wrap(result.slice(1), true)
+        )
+      ],
+      true
+    )
+  )
 }
 
 
@@ -39998,7 +38055,7 @@ function markdown(Prism) {
 
 module.exports = revert
 
-var u = __webpack_require__(302)
+var u = __webpack_require__(29)
 var all = __webpack_require__(520)
 
 // Return the content of a reference without definition as Markdown.
@@ -40189,7 +38246,7 @@ var commas = __webpack_require__(667).stringify
 var entities = __webpack_require__(2)
 var ccount = __webpack_require__(126)
 var all = __webpack_require__(143)
-var constants = __webpack_require__(480)
+var constants = __webpack_require__(616)
 
 module.exports = element
 
@@ -40790,7 +38847,7 @@ function hsts(Prism) {
 
 
 
-var visit = __webpack_require__(794)
+var visit = __webpack_require__(83)
 var fromString = __webpack_require__(677)
 var toString = __webpack_require__(763)
 var is = __webpack_require__(941)
@@ -40899,42 +38956,7 @@ function bison(Prism) {
 
 
 /***/ }),
-/* 519 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visit
-
-var visitParents = __webpack_require__(486)
-
-var CONTINUE = visitParents.CONTINUE
-var SKIP = visitParents.SKIP
-var EXIT = visitParents.EXIT
-
-visit.CONTINUE = CONTINUE
-visit.SKIP = SKIP
-visit.EXIT = EXIT
-
-function visit(tree, test, visitor, reverse) {
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  visitParents(tree, test, overload, reverse)
-
-  function overload(node, parents) {
-    var parent = parents[parents.length - 1]
-    var index = parent ? parent.children.indexOf(node) : null
-    return visitor(node, index, parent)
-  }
-}
-
-
-/***/ }),
+/* 519 */,
 /* 520 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -40981,7 +39003,91 @@ function all(h, parent) {
 /***/ }),
 /* 521 */,
 /* 522 */,
-/* 523 */,
+/* 523 */
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+
+module.exports = visitParents
+
+var convert = __webpack_require__(487)
+
+var CONTINUE = true
+var SKIP = 'skip'
+var EXIT = false
+
+visitParents.CONTINUE = CONTINUE
+visitParents.SKIP = SKIP
+visitParents.EXIT = EXIT
+
+function visitParents(tree, test, visitor, reverse) {
+  var is
+
+  if (typeof test === 'function' && typeof visitor !== 'function') {
+    reverse = visitor
+    visitor = test
+    test = null
+  }
+
+  is = convert(test)
+
+  one(tree, null, [])
+
+  // Visit a single node.
+  function one(node, index, parents) {
+    var result = []
+    var subresult
+
+    if (!test || is(node, index, parents[parents.length - 1] || null)) {
+      result = toResult(visitor(node, parents))
+
+      if (result[0] === EXIT) {
+        return result
+      }
+    }
+
+    if (node.children && result[0] !== SKIP) {
+      subresult = toResult(all(node.children, parents.concat(node)))
+      return subresult[0] === EXIT ? subresult : result
+    }
+
+    return result
+  }
+
+  // Visit children in `parent`.
+  function all(children, parents) {
+    var min = -1
+    var step = reverse ? -1 : 1
+    var index = (reverse ? children.length : min) + step
+    var result
+
+    while (index > min && index < children.length) {
+      result = one(children[index], index, parents)
+
+      if (result[0] === EXIT) {
+        return result
+      }
+
+      index = typeof result[1] === 'number' ? result[1] : index + step
+    }
+  }
+}
+
+function toResult(value) {
+  if (value !== null && typeof value === 'object' && 'length' in value) {
+    return value
+  }
+
+  if (typeof value === 'number') {
+    return [CONTINUE, value]
+  }
+
+  return [value]
+}
+
+
+/***/ }),
 /* 524 */,
 /* 525 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
@@ -41091,42 +39197,7 @@ module.exports = serializeStylesAndSourceMap;
 
 /***/ }),
 /* 526 */,
-/* 527 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visit
-
-var visitParents = __webpack_require__(558)
-
-var CONTINUE = visitParents.CONTINUE
-var SKIP = visitParents.SKIP
-var EXIT = visitParents.EXIT
-
-visit.CONTINUE = CONTINUE
-visit.SKIP = SKIP
-visit.EXIT = EXIT
-
-function visit(tree, test, visitor, reverse) {
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  visitParents(tree, test, overload, reverse)
-
-  function overload(node, parents) {
-    var parent = parents[parents.length - 1]
-    var index = parent ? parent.children.indexOf(node) : null
-    return visitor(node, index, parent)
-  }
-}
-
-
-/***/ }),
+/* 527 */,
 /* 528 */,
 /* 529 */,
 /* 530 */
@@ -41542,91 +39613,7 @@ function nix(Prism) {
 
 
 /***/ }),
-/* 538 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visitParents
-
-var convert = __webpack_require__(920)
-
-var CONTINUE = true
-var SKIP = 'skip'
-var EXIT = false
-
-visitParents.CONTINUE = CONTINUE
-visitParents.SKIP = SKIP
-visitParents.EXIT = EXIT
-
-function visitParents(tree, test, visitor, reverse) {
-  var is
-
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  is = convert(test)
-
-  one(tree, null, [])
-
-  // Visit a single node.
-  function one(node, index, parents) {
-    var result = []
-    var subresult
-
-    if (!test || is(node, index, parents[parents.length - 1] || null)) {
-      result = toResult(visitor(node, parents))
-
-      if (result[0] === EXIT) {
-        return result
-      }
-    }
-
-    if (node.children && result[0] !== SKIP) {
-      subresult = toResult(all(node.children, parents.concat(node)))
-      return subresult[0] === EXIT ? subresult : result
-    }
-
-    return result
-  }
-
-  // Visit children in `parent`.
-  function all(children, parents) {
-    var min = -1
-    var step = reverse ? -1 : 1
-    var index = (reverse ? children.length : min) + step
-    var result
-
-    while (index > min && index < children.length) {
-      result = one(children[index], index, parents)
-
-      if (result[0] === EXIT) {
-        return result
-      }
-
-      index = typeof result[1] === 'number' ? result[1] : index + step
-    }
-  }
-}
-
-function toResult(value) {
-  if (value !== null && typeof value === 'object' && 'length' in value) {
-    return value
-  }
-
-  if (typeof value === 'number') {
-    return [CONTINUE, value]
-  }
-
-  return [value]
-}
-
-
-/***/ }),
+/* 538 */,
 /* 539 */
 /***/ (function(__unusedmodule, exports) {
 
@@ -41845,91 +39832,7 @@ function d(Prism) {
 
 
 /***/ }),
-/* 547 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visitParents
-
-var convert = __webpack_require__(68)
-
-var CONTINUE = true
-var SKIP = 'skip'
-var EXIT = false
-
-visitParents.CONTINUE = CONTINUE
-visitParents.SKIP = SKIP
-visitParents.EXIT = EXIT
-
-function visitParents(tree, test, visitor, reverse) {
-  var is
-
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  is = convert(test)
-
-  one(tree, null, [])
-
-  // Visit a single node.
-  function one(node, index, parents) {
-    var result = []
-    var subresult
-
-    if (!test || is(node, index, parents[parents.length - 1] || null)) {
-      result = toResult(visitor(node, parents))
-
-      if (result[0] === EXIT) {
-        return result
-      }
-    }
-
-    if (node.children && result[0] !== SKIP) {
-      subresult = toResult(all(node.children, parents.concat(node)))
-      return subresult[0] === EXIT ? subresult : result
-    }
-
-    return result
-  }
-
-  // Visit children in `parent`.
-  function all(children, parents) {
-    var min = -1
-    var step = reverse ? -1 : 1
-    var index = (reverse ? children.length : min) + step
-    var result
-
-    while (index > min && index < children.length) {
-      result = one(children[index], index, parents)
-
-      if (result[0] === EXIT) {
-        return result
-      }
-
-      index = typeof result[1] === 'number' ? result[1] : index + step
-    }
-  }
-}
-
-function toResult(value) {
-  if (value !== null && typeof value === 'object' && 'length' in value) {
-    return value
-  }
-
-  if (typeof value === 'number') {
-    return [CONTINUE, value]
-  }
-
-  return [value]
-}
-
-
-/***/ }),
+/* 547 */,
 /* 548 */
 /***/ (function(module) {
 
@@ -42047,7 +39950,91 @@ function groovy(Prism) {
 
 
 /***/ }),
-/* 550 */,
+/* 550 */
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+
+module.exports = visitParents
+
+var convert = __webpack_require__(487)
+
+var CONTINUE = true
+var SKIP = 'skip'
+var EXIT = false
+
+visitParents.CONTINUE = CONTINUE
+visitParents.SKIP = SKIP
+visitParents.EXIT = EXIT
+
+function visitParents(tree, test, visitor, reverse) {
+  var is
+
+  if (typeof test === 'function' && typeof visitor !== 'function') {
+    reverse = visitor
+    visitor = test
+    test = null
+  }
+
+  is = convert(test)
+
+  one(tree, null, [])
+
+  // Visit a single node.
+  function one(node, index, parents) {
+    var result = []
+    var subresult
+
+    if (!test || is(node, index, parents[parents.length - 1] || null)) {
+      result = toResult(visitor(node, parents))
+
+      if (result[0] === EXIT) {
+        return result
+      }
+    }
+
+    if (node.children && result[0] !== SKIP) {
+      subresult = toResult(all(node.children, parents.concat(node)))
+      return subresult[0] === EXIT ? subresult : result
+    }
+
+    return result
+  }
+
+  // Visit children in `parent`.
+  function all(children, parents) {
+    var min = -1
+    var step = reverse ? -1 : 1
+    var index = (reverse ? children.length : min) + step
+    var result
+
+    while (index > min && index < children.length) {
+      result = one(children[index], index, parents)
+
+      if (result[0] === EXIT) {
+        return result
+      }
+
+      index = typeof result[1] === 'number' ? result[1] : index + step
+    }
+  }
+}
+
+function toResult(value) {
+  if (value !== null && typeof value === 'object' && 'length' in value) {
+    return value
+  }
+
+  if (typeof value === 'number') {
+    return [CONTINUE, value]
+  }
+
+  return [value]
+}
+
+
+/***/ }),
 /* 551 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -42228,91 +40215,7 @@ function hpkp(Prism) {
 /***/ }),
 /* 556 */,
 /* 557 */,
-/* 558 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visitParents
-
-var convert = __webpack_require__(918)
-
-var CONTINUE = true
-var SKIP = 'skip'
-var EXIT = false
-
-visitParents.CONTINUE = CONTINUE
-visitParents.SKIP = SKIP
-visitParents.EXIT = EXIT
-
-function visitParents(tree, test, visitor, reverse) {
-  var is
-
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  is = convert(test)
-
-  one(tree, null, [])
-
-  // Visit a single node.
-  function one(node, index, parents) {
-    var result = []
-    var subresult
-
-    if (!test || is(node, index, parents[parents.length - 1] || null)) {
-      result = toResult(visitor(node, parents))
-
-      if (result[0] === EXIT) {
-        return result
-      }
-    }
-
-    if (node.children && result[0] !== SKIP) {
-      subresult = toResult(all(node.children, parents.concat(node)))
-      return subresult[0] === EXIT ? subresult : result
-    }
-
-    return result
-  }
-
-  // Visit children in `parent`.
-  function all(children, parents) {
-    var min = -1
-    var step = reverse ? -1 : 1
-    var index = (reverse ? children.length : min) + step
-    var result
-
-    while (index > min && index < children.length) {
-      result = one(children[index], index, parents)
-
-      if (result[0] === EXIT) {
-        return result
-      }
-
-      index = typeof result[1] === 'number' ? result[1] : index + step
-    }
-  }
-}
-
-function toResult(value) {
-  if (value !== null && typeof value === 'object' && 'length' in value) {
-    return value
-  }
-
-  if (typeof value === 'number') {
-    return [CONTINUE, value]
-  }
-
-  return [value]
-}
-
-
-/***/ }),
+/* 558 */,
 /* 559 */,
 /* 560 */
 /***/ (function(module) {
@@ -43415,91 +41318,7 @@ adjacent to operands.
 
 /***/ }),
 /* 581 */,
-/* 582 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visitParents
-
-var convert = __webpack_require__(421)
-
-var CONTINUE = true
-var SKIP = 'skip'
-var EXIT = false
-
-visitParents.CONTINUE = CONTINUE
-visitParents.SKIP = SKIP
-visitParents.EXIT = EXIT
-
-function visitParents(tree, test, visitor, reverse) {
-  var is
-
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  is = convert(test)
-
-  one(tree, null, [])
-
-  // Visit a single node.
-  function one(node, index, parents) {
-    var result = []
-    var subresult
-
-    if (!test || is(node, index, parents[parents.length - 1] || null)) {
-      result = toResult(visitor(node, parents))
-
-      if (result[0] === EXIT) {
-        return result
-      }
-    }
-
-    if (node.children && result[0] !== SKIP) {
-      subresult = toResult(all(node.children, parents.concat(node)))
-      return subresult[0] === EXIT ? subresult : result
-    }
-
-    return result
-  }
-
-  // Visit children in `parent`.
-  function all(children, parents) {
-    var min = -1
-    var step = reverse ? -1 : 1
-    var index = (reverse ? children.length : min) + step
-    var result
-
-    while (index > min && index < children.length) {
-      result = one(children[index], index, parents)
-
-      if (result[0] === EXIT) {
-        return result
-      }
-
-      index = typeof result[1] === 'number' ? result[1] : index + step
-    }
-  }
-}
-
-function toResult(value) {
-  if (value !== null && typeof value === 'object' && 'length' in value) {
-    return value
-  }
-
-  if (typeof value === 'number') {
-    return [CONTINUE, value]
-  }
-
-  return [value]
-}
-
-
-/***/ }),
+/* 582 */,
 /* 583 */,
 /* 584 */
 /***/ (function(module) {
@@ -43578,138 +41397,10 @@ function jq(Prism) {
 
 /***/ }),
 /* 585 */,
-/* 586 */
-/***/ (function(module) {
-
-"use strict";
-
-
-module.exports = convert
-
-function convert(test) {
-  if (typeof test === 'string') {
-    return typeFactory(test)
-  }
-
-  if (test === null || test === undefined) {
-    return ok
-  }
-
-  if (typeof test === 'object') {
-    return ('length' in test ? anyFactory : matchesFactory)(test)
-  }
-
-  if (typeof test === 'function') {
-    return test
-  }
-
-  throw new Error('Expected function, string, or object as test')
-}
-
-function convertAll(tests) {
-  var results = []
-  var length = tests.length
-  var index = -1
-
-  while (++index < length) {
-    results[index] = convert(tests[index])
-  }
-
-  return results
-}
-
-// Utility assert each property in `test` is represented in `node`, and each
-// values are strictly equal.
-function matchesFactory(test) {
-  return matches
-
-  function matches(node) {
-    var key
-
-    for (key in test) {
-      if (node[key] !== test[key]) {
-        return false
-      }
-    }
-
-    return true
-  }
-}
-
-function anyFactory(tests) {
-  var checks = convertAll(tests)
-  var length = checks.length
-
-  return matches
-
-  function matches() {
-    var index = -1
-
-    while (++index < length) {
-      if (checks[index].apply(this, arguments)) {
-        return true
-      }
-    }
-
-    return false
-  }
-}
-
-// Utility to convert a string into a function which checks a given node’s type
-// for said string.
-function typeFactory(test) {
-  return type
-
-  function type(node) {
-    return Boolean(node && node.type === test)
-  }
-}
-
-// Utility to return true.
-function ok() {
-  return true
-}
-
-
-/***/ }),
+/* 586 */,
 /* 587 */,
 /* 588 */,
-/* 589 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visit
-
-var visitParents = __webpack_require__(264)
-
-var CONTINUE = visitParents.CONTINUE
-var SKIP = visitParents.SKIP
-var EXIT = visitParents.EXIT
-
-visit.CONTINUE = CONTINUE
-visit.SKIP = SKIP
-visit.EXIT = EXIT
-
-function visit(tree, test, visitor, reverse) {
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  visitParents(tree, test, overload, reverse)
-
-  function overload(node, parents) {
-    var parent = parents[parents.length - 1]
-    var index = parent ? parent.children.indexOf(node) : null
-    return visitor(node, index, parent)
-  }
-}
-
-
-/***/ }),
+/* 589 */,
 /* 590 */,
 /* 591 */
 /***/ (function(module) {
@@ -44231,91 +41922,7 @@ module.exports = require("http");
 /***/ }),
 /* 606 */,
 /* 607 */,
-/* 608 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visitParents
-
-var convert = __webpack_require__(689)
-
-var CONTINUE = true
-var SKIP = 'skip'
-var EXIT = false
-
-visitParents.CONTINUE = CONTINUE
-visitParents.SKIP = SKIP
-visitParents.EXIT = EXIT
-
-function visitParents(tree, test, visitor, reverse) {
-  var is
-
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  is = convert(test)
-
-  one(tree, null, [])
-
-  // Visit a single node.
-  function one(node, index, parents) {
-    var result = []
-    var subresult
-
-    if (!test || is(node, index, parents[parents.length - 1] || null)) {
-      result = toResult(visitor(node, parents))
-
-      if (result[0] === EXIT) {
-        return result
-      }
-    }
-
-    if (node.children && result[0] !== SKIP) {
-      subresult = toResult(all(node.children, parents.concat(node)))
-      return subresult[0] === EXIT ? subresult : result
-    }
-
-    return result
-  }
-
-  // Visit children in `parent`.
-  function all(children, parents) {
-    var min = -1
-    var step = reverse ? -1 : 1
-    var index = (reverse ? children.length : min) + step
-    var result
-
-    while (index > min && index < children.length) {
-      result = one(children[index], index, parents)
-
-      if (result[0] === EXIT) {
-        return result
-      }
-
-      index = typeof result[1] === 'number' ? result[1] : index + step
-    }
-  }
-}
-
-function toResult(value) {
-  if (value !== null && typeof value === 'object' && 'length' in value) {
-    return value
-  }
-
-  if (typeof value === 'number') {
-    return [CONTINUE, value]
-  }
-
-  return [value]
-}
-
-
-/***/ }),
+/* 608 */,
 /* 609 */,
 /* 610 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
@@ -44354,111 +41961,49 @@ function siblings(increment) {
 
 /***/ }),
 /* 611 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visitParents
-
-var convert = __webpack_require__(635)
-
-var CONTINUE = true
-var SKIP = 'skip'
-var EXIT = false
-
-visitParents.CONTINUE = CONTINUE
-visitParents.SKIP = SKIP
-visitParents.EXIT = EXIT
-
-function visitParents(tree, test, visitor, reverse) {
-  var is
-
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  is = convert(test)
-
-  one(tree, null, [])
-
-  // Visit a single node.
-  function one(node, index, parents) {
-    var result = []
-    var subresult
-
-    if (!test || is(node, index, parents[parents.length - 1] || null)) {
-      result = toResult(visitor(node, parents))
-
-      if (result[0] === EXIT) {
-        return result
-      }
-    }
-
-    if (node.children && result[0] !== SKIP) {
-      subresult = toResult(all(node.children, parents.concat(node)))
-      return subresult[0] === EXIT ? subresult : result
-    }
-
-    return result
-  }
-
-  // Visit children in `parent`.
-  function all(children, parents) {
-    var min = -1
-    var step = reverse ? -1 : 1
-    var index = (reverse ? children.length : min) + step
-    var result
-
-    while (index > min && index < children.length) {
-      result = one(children[index], index, parents)
-
-      if (result[0] === EXIT) {
-        return result
-      }
-
-      index = typeof result[1] === 'number' ? result[1] : index + step
-    }
-  }
-}
-
-function toResult(value) {
-  if (value !== null && typeof value === 'object' && 'length' in value) {
-    return value
-  }
-
-  if (typeof value === 'number') {
-    return [CONTINUE, value]
-  }
-
-  return [value]
-}
-
-
-/***/ }),
-/* 612 */
 /***/ (function(module) {
 
 "use strict";
 
 
-module.exports = wordCharacter
+module.exports = factory
 
-var fromCode = String.fromCharCode
-var re = /\w/
+var backslash = '\\'
 
-// Check if the given character code, or the character code at the first
-// character, is a word character.
-function wordCharacter(character) {
-  return re.test(
-    typeof character === 'number' ? fromCode(character) : character.charAt(0)
-  )
+// Factory to de-escape a value, based on a list at `key` in `ctx`.
+function factory(ctx, key) {
+  return unescape
+
+  // De-escape a string using the expression at `key` in `ctx`.
+  function unescape(value) {
+    var prev = 0
+    var index = value.indexOf(backslash)
+    var escape = ctx[key]
+    var queue = []
+    var character
+
+    while (index !== -1) {
+      queue.push(value.slice(prev, index))
+      prev = index + 1
+      character = value.charAt(prev)
+
+      // If the following character is not a valid escape, add the slash.
+      if (!character || escape.indexOf(character) === -1) {
+        queue.push(backslash)
+      }
+
+      index = value.indexOf(backslash, prev + 1)
+    }
+
+    queue.push(value.slice(prev))
+
+    return queue.join('')
+  }
 }
 
 
 /***/ }),
+/* 612 */,
 /* 613 */
 /***/ (function(module) {
 
@@ -44479,32 +42024,14 @@ function caseSensitiveTransform(attributes, attribute) {
 "use strict";
 
 
-module.exports = visit
+module.exports = root
 
-var visitParents = __webpack_require__(424)
+var u = __webpack_require__(29)
+var wrap = __webpack_require__(463)
+var all = __webpack_require__(520)
 
-var CONTINUE = visitParents.CONTINUE
-var SKIP = visitParents.SKIP
-var EXIT = visitParents.EXIT
-
-visit.CONTINUE = CONTINUE
-visit.SKIP = SKIP
-visit.EXIT = EXIT
-
-function visit(tree, test, visitor, reverse) {
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  visitParents(tree, test, overload, reverse)
-
-  function overload(node, parents) {
-    var parent = parents[parents.length - 1]
-    var index = parent ? parent.children.indexOf(node) : null
-    return visitor(node, index, parent)
-  }
+function root(h, node) {
+  return h.augment(node, u('root', wrap(all(h, node))))
 }
 
 
@@ -44526,37 +42053,79 @@ function caseInsensitiveTransform(attributes, property) {
 
 /***/ }),
 /* 616 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
+/***/ (function(module) {
 
 "use strict";
 
 
-module.exports = visit
+// Characters.
+var nil = '\0'
+var ampersand = '&'
+var space = ' '
+var tab = '\t'
+var graveAccent = '`'
+var quotationMark = '"'
+var apostrophe = "'"
+var equalsTo = '='
+var lessThan = '<'
+var greaterThan = '>'
+var slash = '/'
+var lineFeed = '\n'
+var carriageReturn = '\r'
+var formFeed = '\f'
 
-var visitParents = __webpack_require__(916)
+var whitespace = [space, tab, lineFeed, carriageReturn, formFeed]
 
-var CONTINUE = visitParents.CONTINUE
-var SKIP = visitParents.SKIP
-var EXIT = visitParents.EXIT
+// See: <https://html.spec.whatwg.org/#attribute-name-state>.
+var name = whitespace.concat(ampersand, slash, greaterThan, equalsTo)
 
-visit.CONTINUE = CONTINUE
-visit.SKIP = SKIP
-visit.EXIT = EXIT
+// See: <https://html.spec.whatwg.org/#attribute-value-(unquoted)-state>.
+var unquoted = whitespace.concat(ampersand, greaterThan)
+var unquotedSafe = unquoted.concat(
+  nil,
+  quotationMark,
+  apostrophe,
+  lessThan,
+  equalsTo,
+  graveAccent
+)
 
-function visit(tree, test, visitor, reverse) {
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
+// See: <https://html.spec.whatwg.org/#attribute-value-(single-quoted)-state>.
+var singleQuoted = [ampersand, apostrophe]
 
-  visitParents(tree, test, overload, reverse)
+// See: <https://html.spec.whatwg.org/#attribute-value-(double-quoted)-state>.
+var doubleQuoted = [ampersand, quotationMark]
 
-  function overload(node, parents) {
-    var parent = parents[parents.length - 1]
-    var index = parent ? parent.children.indexOf(node) : null
-    return visitor(node, index, parent)
-  }
+// Maps of subsets.
+// Each value is a matrix of tuples.
+// The first value causes parse errors, the second is valid.
+// Of both values, the first value is unsafe, and the second is safe.
+module.exports = {
+  name: [
+    [name, name.concat(quotationMark, apostrophe, graveAccent)],
+    [
+      name.concat(nil, quotationMark, apostrophe, lessThan),
+      name.concat(nil, quotationMark, apostrophe, lessThan, graveAccent)
+    ]
+  ],
+  unquoted: [
+    [unquoted, unquotedSafe],
+    [unquotedSafe, unquotedSafe]
+  ],
+  single: [
+    [singleQuoted, singleQuoted.concat(quotationMark, graveAccent)],
+    [
+      singleQuoted.concat(nil),
+      singleQuoted.concat(nil, quotationMark, graveAccent)
+    ]
+  ],
+  double: [
+    [doubleQuoted, doubleQuoted.concat(apostrophe, graveAccent)],
+    [
+      doubleQuoted.concat(nil),
+      doubleQuoted.concat(nil, apostrophe, graveAccent)
+    ]
+  ]
 }
 
 
@@ -44625,7 +42194,7 @@ function dart(Prism) {
 
 
 var CleanCSS = __webpack_require__(174)
-var visit = __webpack_require__(868)
+var visit = __webpack_require__(83)
 var has = __webpack_require__(922)
 
 module.exports = styleAttribute
@@ -44671,7 +42240,7 @@ function visitor(node) {
 "use strict";
 
 
-var visit = __webpack_require__(83)
+var visit = __webpack_require__(24)
 
 module.exports = getDefinitionFactory
 
@@ -44982,7 +42551,7 @@ function pure(Prism) {
 
 
 var CleanCSS = __webpack_require__(174)
-var visit = __webpack_require__(328)
+var visit = __webpack_require__(83)
 var is = __webpack_require__(941)
 var has = __webpack_require__(922)
 
@@ -45045,7 +42614,7 @@ function visitor(node) {
 
 
 var comma = __webpack_require__(667)
-var visit = __webpack_require__(132)
+var visit = __webpack_require__(83)
 var is = __webpack_require__(941)
 var has = __webpack_require__(922)
 
@@ -45130,100 +42699,7 @@ function strikethrough(h, node) {
 /***/ }),
 /* 633 */,
 /* 634 */,
-/* 635 */
-/***/ (function(module) {
-
-"use strict";
-
-
-module.exports = convert
-
-function convert(test) {
-  if (typeof test === 'string') {
-    return typeFactory(test)
-  }
-
-  if (test === null || test === undefined) {
-    return ok
-  }
-
-  if (typeof test === 'object') {
-    return ('length' in test ? anyFactory : matchesFactory)(test)
-  }
-
-  if (typeof test === 'function') {
-    return test
-  }
-
-  throw new Error('Expected function, string, or object as test')
-}
-
-function convertAll(tests) {
-  var results = []
-  var length = tests.length
-  var index = -1
-
-  while (++index < length) {
-    results[index] = convert(tests[index])
-  }
-
-  return results
-}
-
-// Utility assert each property in `test` is represented in `node`, and each
-// values are strictly equal.
-function matchesFactory(test) {
-  return matches
-
-  function matches(node) {
-    var key
-
-    for (key in test) {
-      if (node[key] !== test[key]) {
-        return false
-      }
-    }
-
-    return true
-  }
-}
-
-function anyFactory(tests) {
-  var checks = convertAll(tests)
-  var length = checks.length
-
-  return matches
-
-  function matches() {
-    var index = -1
-
-    while (++index < length) {
-      if (checks[index].apply(this, arguments)) {
-        return true
-      }
-    }
-
-    return false
-  }
-}
-
-// Utility to convert a string into a function which checks a given node’s type
-// for said string.
-function typeFactory(test) {
-  return type
-
-  function type(node) {
-    return Boolean(node && node.type === test)
-  }
-}
-
-// Utility to return true.
-function ok() {
-  return true
-}
-
-
-/***/ }),
+/* 635 */,
 /* 636 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -45879,91 +43355,7 @@ function assertDone(name, asyncName, complete) {
 
 
 /***/ }),
-/* 647 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visitParents
-
-var convert = __webpack_require__(452)
-
-var CONTINUE = true
-var SKIP = 'skip'
-var EXIT = false
-
-visitParents.CONTINUE = CONTINUE
-visitParents.SKIP = SKIP
-visitParents.EXIT = EXIT
-
-function visitParents(tree, test, visitor, reverse) {
-  var is
-
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  is = convert(test)
-
-  one(tree, null, [])
-
-  // Visit a single node.
-  function one(node, index, parents) {
-    var result = []
-    var subresult
-
-    if (!test || is(node, index, parents[parents.length - 1] || null)) {
-      result = toResult(visitor(node, parents))
-
-      if (result[0] === EXIT) {
-        return result
-      }
-    }
-
-    if (node.children && result[0] !== SKIP) {
-      subresult = toResult(all(node.children, parents.concat(node)))
-      return subresult[0] === EXIT ? subresult : result
-    }
-
-    return result
-  }
-
-  // Visit children in `parent`.
-  function all(children, parents) {
-    var min = -1
-    var step = reverse ? -1 : 1
-    var index = (reverse ? children.length : min) + step
-    var result
-
-    while (index > min && index < children.length) {
-      result = one(children[index], index, parents)
-
-      if (result[0] === EXIT) {
-        return result
-      }
-
-      index = typeof result[1] === 'number' ? result[1] : index + step
-    }
-  }
-}
-
-function toResult(value) {
-  if (value !== null && typeof value === 'object' && 'length' in value) {
-    return value
-  }
-
-  if (typeof value === 'number') {
-    return [CONTINUE, value]
-  }
-
-  return [value]
-}
-
-
-/***/ }),
+/* 647 */,
 /* 648 */,
 /* 649 */,
 /* 650 */
@@ -46161,100 +43553,7 @@ function abnf(Prism) {
 
 
 /***/ }),
-/* 656 */
-/***/ (function(module) {
-
-"use strict";
-
-
-module.exports = convert
-
-function convert(test) {
-  if (typeof test === 'string') {
-    return typeFactory(test)
-  }
-
-  if (test === null || test === undefined) {
-    return ok
-  }
-
-  if (typeof test === 'object') {
-    return ('length' in test ? anyFactory : matchesFactory)(test)
-  }
-
-  if (typeof test === 'function') {
-    return test
-  }
-
-  throw new Error('Expected function, string, or object as test')
-}
-
-function convertAll(tests) {
-  var results = []
-  var length = tests.length
-  var index = -1
-
-  while (++index < length) {
-    results[index] = convert(tests[index])
-  }
-
-  return results
-}
-
-// Utility assert each property in `test` is represented in `node`, and each
-// values are strictly equal.
-function matchesFactory(test) {
-  return matches
-
-  function matches(node) {
-    var key
-
-    for (key in test) {
-      if (node[key] !== test[key]) {
-        return false
-      }
-    }
-
-    return true
-  }
-}
-
-function anyFactory(tests) {
-  var checks = convertAll(tests)
-  var length = checks.length
-
-  return matches
-
-  function matches() {
-    var index = -1
-
-    while (++index < length) {
-      if (checks[index].apply(this, arguments)) {
-        return true
-      }
-    }
-
-    return false
-  }
-}
-
-// Utility to convert a string into a function which checks a given node’s type
-// for said string.
-function typeFactory(test) {
-  return type
-
-  function type(node) {
-    return Boolean(node && node.type === test)
-  }
-}
-
-// Utility to return true.
-function ok() {
-  return true
-}
-
-
-/***/ }),
+/* 656 */,
 /* 657 */,
 /* 658 */
 /***/ (function(module) {
@@ -46633,100 +43932,7 @@ function graphql(Prism) {
 
 
 /***/ }),
-/* 664 */
-/***/ (function(module) {
-
-"use strict";
-
-
-module.exports = convert
-
-function convert(test) {
-  if (typeof test === 'string') {
-    return typeFactory(test)
-  }
-
-  if (test === null || test === undefined) {
-    return ok
-  }
-
-  if (typeof test === 'object') {
-    return ('length' in test ? anyFactory : matchesFactory)(test)
-  }
-
-  if (typeof test === 'function') {
-    return test
-  }
-
-  throw new Error('Expected function, string, or object as test')
-}
-
-function convertAll(tests) {
-  var results = []
-  var length = tests.length
-  var index = -1
-
-  while (++index < length) {
-    results[index] = convert(tests[index])
-  }
-
-  return results
-}
-
-// Utility assert each property in `test` is represented in `node`, and each
-// values are strictly equal.
-function matchesFactory(test) {
-  return matches
-
-  function matches(node) {
-    var key
-
-    for (key in test) {
-      if (node[key] !== test[key]) {
-        return false
-      }
-    }
-
-    return true
-  }
-}
-
-function anyFactory(tests) {
-  var checks = convertAll(tests)
-  var length = checks.length
-
-  return matches
-
-  function matches() {
-    var index = -1
-
-    while (++index < length) {
-      if (checks[index].apply(this, arguments)) {
-        return true
-      }
-    }
-
-    return false
-  }
-}
-
-// Utility to convert a string into a function which checks a given node’s type
-// for said string.
-function typeFactory(test) {
-  return type
-
-  function type(node) {
-    return Boolean(node && node.type === test)
-  }
-}
-
-// Utility to return true.
-function ok() {
-  return true
-}
-
-
-/***/ }),
+/* 664 */,
 /* 665 */,
 /* 666 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
@@ -46806,61 +44012,7 @@ function stringify(values, options) {
 
 
 /***/ }),
-/* 668 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-var whitespace = __webpack_require__(578)
-
-module.exports = newline
-
-var lineFeed = '\n'
-
-function newline(eat, value, silent) {
-  var character = value.charAt(0)
-  var length
-  var subvalue
-  var queue
-  var index
-
-  if (character !== lineFeed) {
-    return
-  }
-
-  /* istanbul ignore if - never used (yet) */
-  if (silent) {
-    return true
-  }
-
-  index = 1
-  length = value.length
-  subvalue = character
-  queue = ''
-
-  while (index < length) {
-    character = value.charAt(index)
-
-    if (!whitespace(character)) {
-      break
-    }
-
-    queue += character
-
-    if (character === lineFeed) {
-      subvalue += queue
-      queue = ''
-    }
-
-    index++
-  }
-
-  eat(subvalue)
-}
-
-
-/***/ }),
+/* 668 */,
 /* 669 */
 /***/ (function(module) {
 
@@ -46913,31 +44065,7 @@ function wasm(Prism) {
 
 
 /***/ }),
-/* 672 */
-/***/ (function(module) {
-
-"use strict";
-
-
-module.exports = locate
-
-function locate(value, fromIndex) {
-  var asterisk = value.indexOf('*', fromIndex)
-  var underscore = value.indexOf('_', fromIndex)
-
-  if (underscore === -1) {
-    return asterisk
-  }
-
-  if (asterisk === -1) {
-    return underscore
-  }
-
-  return underscore < asterisk ? underscore : asterisk
-}
-
-
-/***/ }),
+/* 672 */,
 /* 673 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -47158,95 +44286,24 @@ function Info(property, attribute) {
 
 /***/ }),
 /* 683 */
-/***/ (function(module) {
+/***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
 
 
-module.exports = convert
+var xtend = __webpack_require__(940)
+var toHTML = __webpack_require__(709)
 
-function convert(test) {
-  if (typeof test === 'string') {
-    return typeFactory(test)
+module.exports = stringify
+
+function stringify(config) {
+  var settings = xtend(config, this.data('settings'))
+
+  this.Compiler = compiler
+
+  function compiler(tree) {
+    return toHTML(tree, settings)
   }
-
-  if (test === null || test === undefined) {
-    return ok
-  }
-
-  if (typeof test === 'object') {
-    return ('length' in test ? anyFactory : matchesFactory)(test)
-  }
-
-  if (typeof test === 'function') {
-    return test
-  }
-
-  throw new Error('Expected function, string, or object as test')
-}
-
-function convertAll(tests) {
-  var results = []
-  var length = tests.length
-  var index = -1
-
-  while (++index < length) {
-    results[index] = convert(tests[index])
-  }
-
-  return results
-}
-
-// Utility assert each property in `test` is represented in `node`, and each
-// values are strictly equal.
-function matchesFactory(test) {
-  return matches
-
-  function matches(node) {
-    var key
-
-    for (key in test) {
-      if (node[key] !== test[key]) {
-        return false
-      }
-    }
-
-    return true
-  }
-}
-
-function anyFactory(tests) {
-  var checks = convertAll(tests)
-  var length = checks.length
-
-  return matches
-
-  function matches() {
-    var index = -1
-
-    while (++index < length) {
-      if (checks[index].apply(this, arguments)) {
-        return true
-      }
-    }
-
-    return false
-  }
-}
-
-// Utility to convert a string into a function which checks a given node’s type
-// for said string.
-function typeFactory(test) {
-  return type
-
-  function type(node) {
-    return Boolean(node && node.type === test)
-  }
-}
-
-// Utility to return true.
-function ok() {
-  return true
 }
 
 
@@ -47353,95 +44410,16 @@ module.exports = merge([xml, xlink, xmlns, aria, html])
 /* 687 */,
 /* 688 */,
 /* 689 */
-/***/ (function(module) {
+/***/ (function(module, __unusedexports, __webpack_require__) {
 
-"use strict";
-
-
-module.exports = convert
-
-function convert(test) {
-  if (typeof test === 'string') {
-    return typeFactory(test)
-  }
-
-  if (test === null || test === undefined) {
-    return ok
-  }
-
-  if (typeof test === 'object') {
-    return ('length' in test ? anyFactory : matchesFactory)(test)
-  }
-
-  if (typeof test === 'function') {
-    return test
-  }
-
-  throw new Error('Expected function, string, or object as test')
-}
-
-function convertAll(tests) {
-  var results = []
-  var length = tests.length
-  var index = -1
-
-  while (++index < length) {
-    results[index] = convert(tests[index])
-  }
-
-  return results
-}
-
-// Utility assert each property in `test` is represented in `node`, and each
-// values are strictly equal.
-function matchesFactory(test) {
-  return matches
-
-  function matches(node) {
-    var key
-
-    for (key in test) {
-      if (node[key] !== test[key]) {
-        return false
-      }
-    }
-
-    return true
-  }
-}
-
-function anyFactory(tests) {
-  var checks = convertAll(tests)
-  var length = checks.length
-
-  return matches
-
-  function matches() {
-    var index = -1
-
-    while (++index < length) {
-      if (checks[index].apply(this, arguments)) {
-        return true
-      }
-    }
-
-    return false
-  }
-}
-
-// Utility to convert a string into a function which checks a given node’s type
-// for said string.
-function typeFactory(test) {
-  return type
-
-  function type(node) {
-    return Boolean(node && node.type === test)
-  }
-}
-
-// Utility to return true.
-function ok() {
-  return true
+try {
+  var util = __webpack_require__(669);
+  /* istanbul ignore next */
+  if (typeof util.inherits !== 'function') throw '';
+  module.exports = util.inherits;
+} catch (e) {
+  /* istanbul ignore next */
+  module.exports = __webpack_require__(566);
 }
 
 
@@ -47519,7 +44497,7 @@ module.exports = findComponentIn;
 
 
 
-var visit = __webpack_require__(614)
+var visit = __webpack_require__(83)
 
 module.exports = sort
 
@@ -47633,7 +44611,7 @@ function compare(a, b, index) {
 
 
 var CleanCSS = __webpack_require__(174)
-var visit = __webpack_require__(519)
+var visit = __webpack_require__(83)
 var fromString = __webpack_require__(677)
 var toString = __webpack_require__(763)
 var css = __webpack_require__(974)
@@ -47663,38 +44641,44 @@ function visitor(node) {
 
 
 /***/ }),
-/* 695 */,
-/* 696 */,
-/* 697 */
-/***/ (function(module) {
+/* 695 */
+/***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
 
 
-module.exports = factory
+module.exports = visit
 
-// Construct a state `toggler`: a function which inverses `property` in context
-// based on its current value.
-// The by `toggler` returned function restores that value.
-function factory(key, state, ctx) {
-  return enter
+var visitParents = __webpack_require__(299)
 
-  function enter() {
-    var context = ctx || this
-    var current = context[key]
+var CONTINUE = visitParents.CONTINUE
+var SKIP = visitParents.SKIP
+var EXIT = visitParents.EXIT
 
-    context[key] = !state
+visit.CONTINUE = CONTINUE
+visit.SKIP = SKIP
+visit.EXIT = EXIT
 
-    return exit
+function visit(tree, test, visitor, reverse) {
+  if (typeof test === 'function' && typeof visitor !== 'function') {
+    reverse = visitor
+    visitor = test
+    test = null
+  }
 
-    function exit() {
-      context[key] = current
-    }
+  visitParents(tree, test, overload, reverse)
+
+  function overload(node, parents) {
+    var parent = parents[parents.length - 1]
+    var index = parent ? parent.children.indexOf(node) : null
+    return visitor(node, index, parent)
   }
 }
 
 
 /***/ }),
+/* 696 */,
+/* 697 */,
 /* 698 */
 /***/ (function(module) {
 
@@ -47908,7 +44892,7 @@ function lisp(Prism) {
 
 
 
-var visit = __webpack_require__(477)
+var visit = __webpack_require__(83)
 var js = __webpack_require__(805)
 
 module.exports = removeScriptType
@@ -47947,9 +44931,10 @@ const {createClient} = __webpack_require__(311);
 const unified = __webpack_require__(646);
 const prism = __webpack_require__(70);
 const minify = __webpack_require__(831);
-const stringify = __webpack_require__(97);
+const stringify = __webpack_require__(683);
 const markdown = __webpack_require__(923);
 const remark2rehype = __webpack_require__(53);
+const raw = __webpack_require__(788);
 
 /**
  * compile markdown to html
@@ -47960,7 +44945,8 @@ const md2html = contents => {
   return new Promise((resolve, reject) => {
     unified()
       .use(markdown)
-      .use(remark2rehype)
+      .use(remark2rehype, {allowDangerousHTML: true})
+      .use(raw)
       .use(prism, {ignoreMissing: true})
       .use(minify)
       .use(stringify)
@@ -48571,91 +45557,7 @@ module.exports = isHttpResource;
 
 
 /***/ }),
-/* 721 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visitParents
-
-var convert = __webpack_require__(656)
-
-var CONTINUE = true
-var SKIP = 'skip'
-var EXIT = false
-
-visitParents.CONTINUE = CONTINUE
-visitParents.SKIP = SKIP
-visitParents.EXIT = EXIT
-
-function visitParents(tree, test, visitor, reverse) {
-  var is
-
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  is = convert(test)
-
-  one(tree, null, [])
-
-  // Visit a single node.
-  function one(node, index, parents) {
-    var result = []
-    var subresult
-
-    if (!test || is(node, index, parents[parents.length - 1] || null)) {
-      result = toResult(visitor(node, parents))
-
-      if (result[0] === EXIT) {
-        return result
-      }
-    }
-
-    if (node.children && result[0] !== SKIP) {
-      subresult = toResult(all(node.children, parents.concat(node)))
-      return subresult[0] === EXIT ? subresult : result
-    }
-
-    return result
-  }
-
-  // Visit children in `parent`.
-  function all(children, parents) {
-    var min = -1
-    var step = reverse ? -1 : 1
-    var index = (reverse ? children.length : min) + step
-    var result
-
-    while (index > min && index < children.length) {
-      result = one(children[index], index, parents)
-
-      if (result[0] === EXIT) {
-        return result
-      }
-
-      index = typeof result[1] === 'number' ? result[1] : index + step
-    }
-  }
-}
-
-function toResult(value) {
-  if (value !== null && typeof value === 'object' && 'length' in value) {
-    return value
-  }
-
-  if (typeof value === 'number') {
-    return [CONTINUE, value]
-  }
-
-  return [value]
-}
-
-
-/***/ }),
+/* 721 */,
 /* 722 */,
 /* 723 */,
 /* 724 */
@@ -48900,7 +45802,7 @@ module.exports = replaceExt;
 
 module.exports = html
 
-var u = __webpack_require__(302)
+var u = __webpack_require__(29)
 
 // Return either a `raw` node in dangerous mode, otherwise nothing.
 function html(h, node) {
@@ -48924,7 +45826,7 @@ function html(h, node) {
 
 var Uglify = __webpack_require__(252)
 var trim = __webpack_require__(860)
-var visit = __webpack_require__(242)
+var visit = __webpack_require__(83)
 var has = __webpack_require__(922)
 var handler = __webpack_require__(778)
 
@@ -49846,42 +46748,7 @@ module.exports = {
 
 
 /***/ }),
-/* 752 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visit
-
-var visitParents = __webpack_require__(608)
-
-var CONTINUE = visitParents.CONTINUE
-var SKIP = visitParents.SKIP
-var EXIT = visitParents.EXIT
-
-visit.CONTINUE = CONTINUE
-visit.SKIP = SKIP
-visit.EXIT = EXIT
-
-function visit(tree, test, visitor, reverse) {
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  visitParents(tree, test, overload, reverse)
-
-  function overload(node, parents) {
-    var parent = parents[parents.length - 1]
-    var index = parent ? parent.children.indexOf(node) : null
-    return visitor(node, index, parent)
-  }
-}
-
-
-/***/ }),
+/* 752 */,
 /* 753 */,
 /* 754 */,
 /* 755 */
@@ -50503,90 +47370,17 @@ module.exports = tidyRuleDuplicates;
 "use strict";
 
 
-module.exports = convert
+module.exports = wordCharacter
 
-function convert(test) {
-  if (typeof test === 'string') {
-    return typeFactory(test)
-  }
+var fromCode = String.fromCharCode
+var re = /\w/
 
-  if (test === null || test === undefined) {
-    return ok
-  }
-
-  if (typeof test === 'object') {
-    return ('length' in test ? anyFactory : matchesFactory)(test)
-  }
-
-  if (typeof test === 'function') {
-    return test
-  }
-
-  throw new Error('Expected function, string, or object as test')
-}
-
-function convertAll(tests) {
-  var results = []
-  var length = tests.length
-  var index = -1
-
-  while (++index < length) {
-    results[index] = convert(tests[index])
-  }
-
-  return results
-}
-
-// Utility assert each property in `test` is represented in `node`, and each
-// values are strictly equal.
-function matchesFactory(test) {
-  return matches
-
-  function matches(node) {
-    var key
-
-    for (key in test) {
-      if (node[key] !== test[key]) {
-        return false
-      }
-    }
-
-    return true
-  }
-}
-
-function anyFactory(tests) {
-  var checks = convertAll(tests)
-  var length = checks.length
-
-  return matches
-
-  function matches() {
-    var index = -1
-
-    while (++index < length) {
-      if (checks[index].apply(this, arguments)) {
-        return true
-      }
-    }
-
-    return false
-  }
-}
-
-// Utility to convert a string into a function which checks a given node’s type
-// for said string.
-function typeFactory(test) {
-  return type
-
-  function type(node) {
-    return Boolean(node && node.type === test)
-  }
-}
-
-// Utility to return true.
-function ok() {
-  return true
+// Check if the given character code, or the character code at the first
+// character, is a word character.
+function wordCharacter(character) {
+  return re.test(
+    typeof character === 'number' ? fromCode(character) : character.charAt(0)
+  )
 }
 
 
@@ -51330,9 +48124,9 @@ module.exports = {
   listItem: __webpack_require__(340),
   list: __webpack_require__(317),
   paragraph: __webpack_require__(207),
-  root: __webpack_require__(165),
+  root: __webpack_require__(614),
   strong: __webpack_require__(303),
-  table: __webpack_require__(173),
+  table: __webpack_require__(486),
   text: __webpack_require__(113),
   thematicBreak: __webpack_require__(134),
   toml: ignore,
@@ -51646,7 +48440,13 @@ refractor.register(__webpack_require__(645))
 
 /***/ }),
 /* 787 */,
-/* 788 */,
+/* 788 */
+/***/ (function() {
+
+eval("require")("remark-raw");
+
+
+/***/ }),
 /* 789 */,
 /* 790 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
@@ -51655,9 +48455,9 @@ refractor.register(__webpack_require__(645))
 
 
 var trim = __webpack_require__(860)
-var word = __webpack_require__(612)
+var word = __webpack_require__(767)
 var whitespace = __webpack_require__(578)
-var locate = __webpack_require__(672)
+var locate = __webpack_require__(99)
 
 module.exports = emphasis
 emphasis.locator = locate
@@ -51833,42 +48633,7 @@ function jsdoc(Prism) {
 module.exports = {"0":"�","128":"€","130":"‚","131":"ƒ","132":"„","133":"…","134":"†","135":"‡","136":"ˆ","137":"‰","138":"Š","139":"‹","140":"Œ","142":"Ž","145":"‘","146":"’","147":"“","148":"”","149":"•","150":"–","151":"—","152":"˜","153":"™","154":"š","155":"›","156":"œ","158":"ž","159":"Ÿ"};
 
 /***/ }),
-/* 794 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visit
-
-var visitParents = __webpack_require__(246)
-
-var CONTINUE = visitParents.CONTINUE
-var SKIP = visitParents.SKIP
-var EXIT = visitParents.EXIT
-
-visit.CONTINUE = CONTINUE
-visit.SKIP = SKIP
-visit.EXIT = EXIT
-
-function visit(tree, test, visitor, reverse) {
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  visitParents(tree, test, overload, reverse)
-
-  function overload(node, parents) {
-    var parent = parents[parents.length - 1]
-    var index = parent ? parent.children.indexOf(node) : null
-    return visitor(node, index, parent)
-  }
-}
-
-
-/***/ }),
+/* 794 */,
 /* 795 */,
 /* 796 */,
 /* 797 */
@@ -52772,100 +49537,7 @@ function trough() {
 
 /***/ }),
 /* 817 */,
-/* 818 */
-/***/ (function(module) {
-
-"use strict";
-
-
-module.exports = convert
-
-function convert(test) {
-  if (typeof test === 'string') {
-    return typeFactory(test)
-  }
-
-  if (test === null || test === undefined) {
-    return ok
-  }
-
-  if (typeof test === 'object') {
-    return ('length' in test ? anyFactory : matchesFactory)(test)
-  }
-
-  if (typeof test === 'function') {
-    return test
-  }
-
-  throw new Error('Expected function, string, or object as test')
-}
-
-function convertAll(tests) {
-  var results = []
-  var length = tests.length
-  var index = -1
-
-  while (++index < length) {
-    results[index] = convert(tests[index])
-  }
-
-  return results
-}
-
-// Utility assert each property in `test` is represented in `node`, and each
-// values are strictly equal.
-function matchesFactory(test) {
-  return matches
-
-  function matches(node) {
-    var key
-
-    for (key in test) {
-      if (node[key] !== test[key]) {
-        return false
-      }
-    }
-
-    return true
-  }
-}
-
-function anyFactory(tests) {
-  var checks = convertAll(tests)
-  var length = checks.length
-
-  return matches
-
-  function matches() {
-    var index = -1
-
-    while (++index < length) {
-      if (checks[index].apply(this, arguments)) {
-        return true
-      }
-    }
-
-    return false
-  }
-}
-
-// Utility to convert a string into a function which checks a given node’s type
-// for said string.
-function typeFactory(test) {
-  return type
-
-  function type(node) {
-    return Boolean(node && node.type === test)
-  }
-}
-
-// Utility to return true.
-function ok() {
-  return true
-}
-
-
-/***/ }),
+/* 818 */,
 /* 819 */,
 /* 820 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
@@ -53333,7 +50005,7 @@ exports.plugins = [
   __webpack_require__(280),
   __webpack_require__(732),
   __webpack_require__(50),
-  __webpack_require__(478),
+  __webpack_require__(361),
   __webpack_require__(514),
   __webpack_require__(952),
   __webpack_require__(629),
@@ -53419,8 +50091,8 @@ module.exports = require("url");
 module.exports = toHast
 
 var xtend = __webpack_require__(940)
-var u = __webpack_require__(302)
-var visit = __webpack_require__(83)
+var u = __webpack_require__(29)
+var visit = __webpack_require__(695)
 var position = __webpack_require__(960)
 var generated = __webpack_require__(353)
 var definitions = __webpack_require__(620)
@@ -53526,42 +50198,7 @@ function toHast(tree, options) {
 
 
 /***/ }),
-/* 837 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visit
-
-var visitParents = __webpack_require__(29)
-
-var CONTINUE = visitParents.CONTINUE
-var SKIP = visitParents.SKIP
-var EXIT = visitParents.EXIT
-
-visit.CONTINUE = CONTINUE
-visit.SKIP = SKIP
-visit.EXIT = EXIT
-
-function visit(tree, test, visitor, reverse) {
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  visitParents(tree, test, overload, reverse)
-
-  function overload(node, parents) {
-    var parent = parents[parents.length - 1]
-    var index = parent ? parent.children.indexOf(node) : null
-    return visitor(node, index, parent)
-  }
-}
-
-
-/***/ }),
+/* 837 */,
 /* 838 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -54038,7 +50675,7 @@ module.exports = merge([xml, xlink, xmlns, aria, svg])
 
 module.exports = one
 
-var u = __webpack_require__(302)
+var u = __webpack_require__(29)
 var all = __webpack_require__(520)
 
 var own = {}.hasOwnProperty
@@ -54323,42 +50960,7 @@ function indentedCode(eat, value, silent) {
 
 /***/ }),
 /* 850 */,
-/* 851 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visit
-
-var visitParents = __webpack_require__(316)
-
-var CONTINUE = visitParents.CONTINUE
-var SKIP = visitParents.SKIP
-var EXIT = visitParents.EXIT
-
-visit.CONTINUE = CONTINUE
-visit.SKIP = SKIP
-visit.EXIT = EXIT
-
-function visit(tree, test, visitor, reverse) {
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  visitParents(tree, test, overload, reverse)
-
-  function overload(node, parents) {
-    var parent = parents[parents.length - 1]
-    var index = parent ? parent.children.indexOf(node) : null
-    return visitor(node, index, parent)
-  }
-}
-
-
-/***/ }),
+/* 851 */,
 /* 852 */
 /***/ (function(module) {
 
@@ -54562,7 +51164,91 @@ module.exports = shortenHsl;
 
 
 /***/ }),
-/* 855 */,
+/* 855 */
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+
+module.exports = visitParents
+
+var convert = __webpack_require__(487)
+
+var CONTINUE = true
+var SKIP = 'skip'
+var EXIT = false
+
+visitParents.CONTINUE = CONTINUE
+visitParents.SKIP = SKIP
+visitParents.EXIT = EXIT
+
+function visitParents(tree, test, visitor, reverse) {
+  var is
+
+  if (typeof test === 'function' && typeof visitor !== 'function') {
+    reverse = visitor
+    visitor = test
+    test = null
+  }
+
+  is = convert(test)
+
+  one(tree, null, [])
+
+  // Visit a single node.
+  function one(node, index, parents) {
+    var result = []
+    var subresult
+
+    if (!test || is(node, index, parents[parents.length - 1] || null)) {
+      result = toResult(visitor(node, parents))
+
+      if (result[0] === EXIT) {
+        return result
+      }
+    }
+
+    if (node.children && result[0] !== SKIP) {
+      subresult = toResult(all(node.children, parents.concat(node)))
+      return subresult[0] === EXIT ? subresult : result
+    }
+
+    return result
+  }
+
+  // Visit children in `parent`.
+  function all(children, parents) {
+    var min = -1
+    var step = reverse ? -1 : 1
+    var index = (reverse ? children.length : min) + step
+    var result
+
+    while (index > min && index < children.length) {
+      result = one(children[index], index, parents)
+
+      if (result[0] === EXIT) {
+        return result
+      }
+
+      index = typeof result[1] === 'number' ? result[1] : index + step
+    }
+  }
+}
+
+function toResult(value) {
+  if (value !== null && typeof value === 'object' && 'length' in value) {
+    return value
+  }
+
+  if (typeof value === 'number') {
+    return [CONTINUE, value]
+  }
+
+  return [value]
+}
+
+
+/***/ }),
 /* 856 */,
 /* 857 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
@@ -55127,7 +51813,7 @@ module.exports = naturalCompare;
 
 
 var array = __webpack_require__(224)
-var visit = __webpack_require__(527)
+var visit = __webpack_require__(83)
 var has = __webpack_require__(922)
 var is = __webpack_require__(941)
 var attributes = __webpack_require__(825)
@@ -55187,42 +51873,7 @@ function one(value) {
 module.exports = require("tty");
 
 /***/ }),
-/* 868 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visit
-
-var visitParents = __webpack_require__(4)
-
-var CONTINUE = visitParents.CONTINUE
-var SKIP = visitParents.SKIP
-var EXIT = visitParents.EXIT
-
-visit.CONTINUE = CONTINUE
-visit.SKIP = SKIP
-visit.EXIT = EXIT
-
-function visit(tree, test, visitor, reverse) {
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  visitParents(tree, test, overload, reverse)
-
-  function overload(node, parents) {
-    var parent = parents[parents.length - 1]
-    var index = parent ? parent.children.indexOf(node) : null
-    return visitor(node, index, parent)
-  }
-}
-
-
-/***/ }),
+/* 868 */,
 /* 869 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -55241,7 +51892,7 @@ function visit(tree, test, visitor, reverse) {
 
 var trim = __webpack_require__(860)
 var array = __webpack_require__(224)
-var visit = __webpack_require__(221)
+var visit = __webpack_require__(83)
 var has = __webpack_require__(922)
 var is = __webpack_require__(941)
 var handler = __webpack_require__(778)
@@ -55320,7 +51971,7 @@ module.exports = function isBuffer (obj) {
 
 
 var xtend = __webpack_require__(940)
-var inherits = __webpack_require__(422)
+var inherits = __webpack_require__(689)
 
 module.exports = unherit
 
@@ -55630,7 +52281,7 @@ module.exports = ["area","base","basefont","bgsound","br","col","command","embed
 module.exports = code
 
 var detab = __webpack_require__(876)
-var u = __webpack_require__(302)
+var u = __webpack_require__(29)
 
 function code(h, node) {
   var value = node.value ? detab(node.value + '\n') : ''
@@ -55654,7 +52305,7 @@ function code(h, node) {
 
 module.exports = visitParents
 
-var convert = __webpack_require__(487)
+var convert = __webpack_require__(64)
 
 var CONTINUE = true
 var SKIP = 'skip'
@@ -55731,7 +52382,42 @@ function toResult(value) {
 
 
 /***/ }),
-/* 883 */,
+/* 883 */
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+
+module.exports = visit
+
+var visitParents = __webpack_require__(855)
+
+var CONTINUE = visitParents.CONTINUE
+var SKIP = visitParents.SKIP
+var EXIT = visitParents.EXIT
+
+visit.CONTINUE = CONTINUE
+visit.SKIP = SKIP
+visit.EXIT = EXIT
+
+function visit(tree, test, visitor, reverse) {
+  if (typeof test === 'function' && typeof visitor !== 'function') {
+    reverse = visitor
+    visitor = test
+    test = null
+  }
+
+  visitParents(tree, test, overload, reverse)
+
+  function overload(node, parents) {
+    var parent = parents[parents.length - 1]
+    var index = parent ? parent.children.indexOf(node) : null
+    return visitor(node, index, parent)
+  }
+}
+
+
+/***/ }),
 /* 884 */,
 /* 885 */,
 /* 886 */
@@ -57975,286 +54661,16 @@ function twig(Prism) {
 
 
 /***/ }),
-/* 916 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = visitParents
-
-var convert = __webpack_require__(586)
-
-var CONTINUE = true
-var SKIP = 'skip'
-var EXIT = false
-
-visitParents.CONTINUE = CONTINUE
-visitParents.SKIP = SKIP
-visitParents.EXIT = EXIT
-
-function visitParents(tree, test, visitor, reverse) {
-  var is
-
-  if (typeof test === 'function' && typeof visitor !== 'function') {
-    reverse = visitor
-    visitor = test
-    test = null
-  }
-
-  is = convert(test)
-
-  one(tree, null, [])
-
-  // Visit a single node.
-  function one(node, index, parents) {
-    var result = []
-    var subresult
-
-    if (!test || is(node, index, parents[parents.length - 1] || null)) {
-      result = toResult(visitor(node, parents))
-
-      if (result[0] === EXIT) {
-        return result
-      }
-    }
-
-    if (node.children && result[0] !== SKIP) {
-      subresult = toResult(all(node.children, parents.concat(node)))
-      return subresult[0] === EXIT ? subresult : result
-    }
-
-    return result
-  }
-
-  // Visit children in `parent`.
-  function all(children, parents) {
-    var min = -1
-    var step = reverse ? -1 : 1
-    var index = (reverse ? children.length : min) + step
-    var result
-
-    while (index > min && index < children.length) {
-      result = one(children[index], index, parents)
-
-      if (result[0] === EXIT) {
-        return result
-      }
-
-      index = typeof result[1] === 'number' ? result[1] : index + step
-    }
-  }
-}
-
-function toResult(value) {
-  if (value !== null && typeof value === 'object' && 'length' in value) {
-    return value
-  }
-
-  if (typeof value === 'number') {
-    return [CONTINUE, value]
-  }
-
-  return [value]
-}
-
-
-/***/ }),
+/* 916 */,
 /* 917 */
 /***/ (function(module) {
 
 module.exports = ["application/ecmascript","application/javascript","application/x-ecmascript","application/x-javascript","text/ecmascript","text/javascript","text/javascript1.0","text/javascript1.1","text/javascript1.2","text/javascript1.3","text/javascript1.4","text/javascript1.5","text/jscript","text/livescript","text/x-ecmascript","text/x-javascript"];
 
 /***/ }),
-/* 918 */
-/***/ (function(module) {
-
-"use strict";
-
-
-module.exports = convert
-
-function convert(test) {
-  if (typeof test === 'string') {
-    return typeFactory(test)
-  }
-
-  if (test === null || test === undefined) {
-    return ok
-  }
-
-  if (typeof test === 'object') {
-    return ('length' in test ? anyFactory : matchesFactory)(test)
-  }
-
-  if (typeof test === 'function') {
-    return test
-  }
-
-  throw new Error('Expected function, string, or object as test')
-}
-
-function convertAll(tests) {
-  var results = []
-  var length = tests.length
-  var index = -1
-
-  while (++index < length) {
-    results[index] = convert(tests[index])
-  }
-
-  return results
-}
-
-// Utility assert each property in `test` is represented in `node`, and each
-// values are strictly equal.
-function matchesFactory(test) {
-  return matches
-
-  function matches(node) {
-    var key
-
-    for (key in test) {
-      if (node[key] !== test[key]) {
-        return false
-      }
-    }
-
-    return true
-  }
-}
-
-function anyFactory(tests) {
-  var checks = convertAll(tests)
-  var length = checks.length
-
-  return matches
-
-  function matches() {
-    var index = -1
-
-    while (++index < length) {
-      if (checks[index].apply(this, arguments)) {
-        return true
-      }
-    }
-
-    return false
-  }
-}
-
-// Utility to convert a string into a function which checks a given node’s type
-// for said string.
-function typeFactory(test) {
-  return type
-
-  function type(node) {
-    return Boolean(node && node.type === test)
-  }
-}
-
-// Utility to return true.
-function ok() {
-  return true
-}
-
-
-/***/ }),
+/* 918 */,
 /* 919 */,
-/* 920 */
-/***/ (function(module) {
-
-"use strict";
-
-
-module.exports = convert
-
-function convert(test) {
-  if (typeof test === 'string') {
-    return typeFactory(test)
-  }
-
-  if (test === null || test === undefined) {
-    return ok
-  }
-
-  if (typeof test === 'object') {
-    return ('length' in test ? anyFactory : matchesFactory)(test)
-  }
-
-  if (typeof test === 'function') {
-    return test
-  }
-
-  throw new Error('Expected function, string, or object as test')
-}
-
-function convertAll(tests) {
-  var results = []
-  var length = tests.length
-  var index = -1
-
-  while (++index < length) {
-    results[index] = convert(tests[index])
-  }
-
-  return results
-}
-
-// Utility assert each property in `test` is represented in `node`, and each
-// values are strictly equal.
-function matchesFactory(test) {
-  return matches
-
-  function matches(node) {
-    var key
-
-    for (key in test) {
-      if (node[key] !== test[key]) {
-        return false
-      }
-    }
-
-    return true
-  }
-}
-
-function anyFactory(tests) {
-  var checks = convertAll(tests)
-  var length = checks.length
-
-  return matches
-
-  function matches() {
-    var index = -1
-
-    while (++index < length) {
-      if (checks[index].apply(this, arguments)) {
-        return true
-      }
-    }
-
-    return false
-  }
-}
-
-// Utility to convert a string into a function which checks a given node’s type
-// for said string.
-function typeFactory(test) {
-  return type
-
-  function type(node) {
-    return Boolean(node && node.type === test)
-  }
-}
-
-// Utility to return true.
-function ok() {
-  return true
-}
-
-
-/***/ }),
+/* 920 */,
 /* 921 */,
 /* 922 */
 /***/ (function(module) {
@@ -59297,49 +55713,7 @@ module.exports = level1Optimize;
 
 /***/ }),
 /* 935 */,
-/* 936 */
-/***/ (function(module) {
-
-"use strict";
-
-
-module.exports = factory
-
-var backslash = '\\'
-
-// Factory to de-escape a value, based on a list at `key` in `ctx`.
-function factory(ctx, key) {
-  return unescape
-
-  // De-escape a string using the expression at `key` in `ctx`.
-  function unescape(value) {
-    var prev = 0
-    var index = value.indexOf(backslash)
-    var escape = ctx[key]
-    var queue = []
-    var character
-
-    while (index !== -1) {
-      queue.push(value.slice(prev, index))
-      prev = index + 1
-      character = value.charAt(prev)
-
-      // If the following character is not a valid escape, add the slash.
-      if (!character || escape.indexOf(character) === -1) {
-        queue.push(backslash)
-      }
-
-      index = value.indexOf(backslash, prev + 1)
-    }
-
-    queue.push(value.slice(prev))
-
-    return queue.join('')
-  }
-}
-
-
-/***/ }),
+/* 936 */,
 /* 937 */,
 /* 938 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
@@ -59351,7 +55725,7 @@ module.exports = generateFootnotes
 
 var thematicBreak = __webpack_require__(134)
 var list = __webpack_require__(317)
-var wrap = __webpack_require__(323)
+var wrap = __webpack_require__(463)
 
 function generateFootnotes(h) {
   var footnoteById = h.footnoteById
@@ -59617,7 +55991,7 @@ function renpy(Prism) {
 
 module.exports = hardBreak
 
-var u = __webpack_require__(302)
+var u = __webpack_require__(29)
 
 function hardBreak(h, node) {
   return [h(node, 'br'), u('text', '\n')]
@@ -59632,9 +56006,9 @@ function hardBreak(h, node) {
 
 
 var xtend = __webpack_require__(940)
-var toggle = __webpack_require__(697)
+var toggle = __webpack_require__(4)
 var vfileLocation = __webpack_require__(684)
-var unescape = __webpack_require__(936)
+var unescape = __webpack_require__(611)
 var decode = __webpack_require__(820)
 var tokenizer = __webpack_require__(886)
 
@@ -59728,12 +56102,12 @@ proto.interruptBlockquote = [
 
 // Handlers.
 proto.blockTokenizers = {
-  newline: __webpack_require__(668),
+  newline: __webpack_require__(132),
   indentedCode: __webpack_require__(849),
   fencedCode: __webpack_require__(741),
   blockquote: __webpack_require__(185),
   atxHeading: __webpack_require__(841),
-  thematicBreak: __webpack_require__(314),
+  thematicBreak: __webpack_require__(242),
   list: __webpack_require__(194),
   setextHeading: __webpack_require__(803),
   html: __webpack_require__(717),
@@ -59871,7 +56245,7 @@ function wrapperFactory(callback) {
 
 
 
-var visit = __webpack_require__(851)
+var visit = __webpack_require__(83)
 var link = __webpack_require__(315)
 var style = __webpack_require__(974)
 
@@ -59910,7 +56284,7 @@ function visitor(node) {
 
 
 var CleanCSS = __webpack_require__(174)
-var visit = __webpack_require__(752)
+var visit = __webpack_require__(83)
 var is = __webpack_require__(941)
 
 module.exports = mediaAttribute
