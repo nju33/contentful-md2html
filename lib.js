@@ -5,7 +5,7 @@ const minify = require('rehype-preset-minify');
 const stringify = require('rehype-stringify');
 const markdown = require('remark-parse');
 const remark2rehype = require('remark-rehype');
-const raw = require('remark-raw');
+const raw = require('rehype-raw');
 
 /**
  * compile markdown to html
